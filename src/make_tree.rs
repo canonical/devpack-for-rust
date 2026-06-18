@@ -1,4 +1,3 @@
-use console::StyledObject;
 use treeversal::{
     NodeDefinitionType, TreeDefinition, TreeNodeDefinition, console_driver::StyledMsgAndData,
 };

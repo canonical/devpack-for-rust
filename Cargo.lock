@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "devpack-for-rust-sketch01"
+name = "devpack-for-rust"
 version = "0.1.0"
 dependencies = [
  "console",
