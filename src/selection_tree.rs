@@ -55,7 +55,7 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
   ));
 
   TreeDefinition::new(
-    text("Customize your devpack-for-rust")
+    text("Customize your devpack-for-rust. Use arrow keys or HJKL to navigate the tree; use space or enter to (de)select an option.")
       .with_child(rust_version)
       .with_child(ide)
       .with_child(extras)

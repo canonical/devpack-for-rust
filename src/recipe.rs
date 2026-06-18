@@ -1,8 +1,6 @@
-use std::process::Command;
-
 use eyre::{Context, bail};
 
-use crate::DevpackSettings;
+use crate::driver::InstallDriver;
 
 #[derive(Clone, Debug)]
 pub struct InstallRecipe {
@@ -41,7 +39,7 @@ pub enum InstallStep {
 }
 
 impl InstallStep {
-  pub fn execute(&self, settings: &DevpackSettings) -> eyre::Result<()> {
+  pub fn execute(&self, driver: &mut InstallDriver) -> eyre::Result<()> {
     match self {
       InstallStep::NoOp => {
         // that was easy
@@ -51,80 +49,35 @@ impl InstallStep {
         let rustup_path = match which::which("rustup") {
           Ok(it) => it,
           Err(_) => {
-            eprintln!("[devpack-for-rust] rustup was not found in path, installing via snap ...");
-            install_snap("rustup", true, settings)?;
-            which::which("rustup")
-              .wrap_err("even after `snap install`-ing rustup, could not find it in the path")?
+            if driver.settings.dry_run {
+              println!(
+                "[devpack-for-rust] did not find rustup, but we are dry-running, so it's okay"
+              );
+              return Ok(());
+            } else {
+              eprintln!("[devpack-for-rust] did not find rustup, installing it with snap ...");
+              driver.install_snap("rustup", true)?;
+              which::which("rustup")
+                .wrap_err("even after `snap install`-ing rustup, could not find it")?
+            }
           }
         };
-
         println!(
           "[devpack-for-rust] Using rustup to install rust channel {:?} ...",
           &channel
         );
-        let rustup_status = Command::new(rustup_path)
-          .arg("default")
-          .arg(&channel)
-          .status()?;
+        let rustup_status = driver.maybe_dry_run_command(rustup_path, &["default", channel])?;
         if !rustup_status.success() {
           bail!("rustup invocation failed with error code {}", rustup_status);
         }
         Ok(())
       }
-      InstallStep::Apt(pkg_name) => install_apt(pkg_name),
+      InstallStep::Apt(pkg_name) => driver.install_apt(pkg_name),
       InstallStep::Snap {
         package_name,
         classic_confinement,
-      } => install_snap(package_name, *classic_confinement, settings),
+      } => driver.install_snap(package_name, *classic_confinement),
       InstallStep::MakeAlias { name, command } => todo!(),
     }
   }
-}
-
-fn install_apt(pkg_name: &String) -> Result<(), eyre::Error> {
-  println!("[devpack-for-rust] Using apt to install {:?} ...", pkg_name);
-  let apt_status = Command::new("apt").arg("update").status()?;
-  if !apt_status.success() {
-    bail!(
-      "apt update invocation failed with error code {}",
-      apt_status
-    );
-  }
-
-  let apt_status = Command::new("apt").arg("install").arg(pkg_name).status()?;
-  if !apt_status.success() {
-    bail!(
-      "apt install invocation failed with error code {}",
-      apt_status
-    );
-  }
-  Ok(())
-}
-
-fn install_snap(
-  package_name: &str,
-  classic_confinement: bool,
-  settings: &DevpackSettings,
-) -> eyre::Result<()> {
-  println!(
-    "[devpack-for-rust] using snap to install {:?}{}",
-    package_name,
-    if classic_confinement {
-      " with --classic confinement"
-    } else {
-      ""
-    }
-  );
-  // need to bind the cmd to a variable to appease borrowck
-  let mut cmd = Command::new("snap");
-  cmd.arg("install").arg(package_name);
-  if classic_confinement {
-    cmd.arg("--classic");
-  }
-
-  let status = cmd.status()?;
-  if !status.success() {
-    bail!("snap invocation failed with error code {}", status);
-  }
-  Ok(())
 }
