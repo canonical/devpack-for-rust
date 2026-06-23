@@ -12,7 +12,7 @@ mod selection_tree;
 /// Devpack for Rust -- an easy installer for Rustup, IDEs, and Rusty accessories.
 #[derive(Default, Parser)]
 #[command(version, about)]
-pub struct DevpackSettings {
+pub struct Cli {
   /// If one recipe fails, choose whether to try and execute the other recipes.
   #[arg(short = 'C', long)]
   pub continue_after_failure: bool,
@@ -23,7 +23,7 @@ pub struct DevpackSettings {
 
 fn main() -> eyre::Result<()> {
   // Parse settings before the root check so `--help` and friends works
-  let settings = DevpackSettings::parse();
+  let settings = Cli::parse();
 
   let privileges = sudo::check();
   if privileges != sudo::RunningAs::Root {
@@ -55,7 +55,7 @@ fn main() -> eyre::Result<()> {
     'steps: for step in recipe.steps.iter() {
       let res = step.execute(&mut install_driver);
       if let Err(oh_no) = res {
-        if install_driver.settings.continue_after_failure {
+        if install_driver.continue_after_failure {
           eprintln!("[devpack-for-rust] A recipe failed with the following error:");
           eprintln!("{:?}", oh_no);
           // the further steps of this recipe don't make sense,

@@ -5,18 +5,21 @@ use std::{
 
 use eyre::bail;
 
-use crate::DevpackSettings;
+use crate::Cli;
 
 pub struct InstallDriver {
-  pub settings: DevpackSettings,
+  pub dry_run: bool,
+  pub continue_after_failure: bool,
   already_ran_apt_update: bool,
 }
 
 impl InstallDriver {
-  pub fn new(settings: DevpackSettings) -> Self {
+  /// Initialize the driver from the CLI args.
+  pub fn new(settings: Cli) -> Self {
     Self {
-      settings,
       already_ran_apt_update: false,
+      dry_run: settings.dry_run,
+      continue_after_failure: settings.continue_after_failure,
     }
   }
 
@@ -33,7 +36,7 @@ impl InstallDriver {
     let cmd = cmd.as_ref();
     let args = args.into_iter().map(AsRef::as_ref).collect::<Vec<_>>();
 
-    if self.settings.dry_run {
+    if self.dry_run {
       println!(
         "[devpack-for-rust] not running due to --dry-run: {} {:?}",
         cmd.display(),
