@@ -1,6 +1,6 @@
 use eyre::{Context, bail};
 
-use crate::driver::InstallDriver;
+use crate::wizard::InstallWizard;
 
 #[derive(Clone, Debug)]
 pub struct InstallRecipe {
@@ -39,7 +39,7 @@ pub enum InstallStep {
 }
 
 impl InstallStep {
-  pub fn execute(&self, driver: &mut InstallDriver) -> eyre::Result<()> {
+  pub fn execute(&self, driver: &mut InstallWizard) -> eyre::Result<()> {
     match self {
       InstallStep::NoOp => {
         // that was easy
@@ -49,7 +49,7 @@ impl InstallStep {
         let rustup_path = match which::which("rustup") {
           Ok(it) => it,
           Err(_) => {
-            if driver.settings.dry_run {
+            if driver.dry_run {
               println!(
                 "[devpack-for-rust] did not find rustup, but we are dry-running, so it's okay"
               );

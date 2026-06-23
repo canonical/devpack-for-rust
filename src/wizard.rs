@@ -7,13 +7,13 @@ use eyre::bail;
 
 use crate::Cli;
 
-pub struct InstallDriver {
+pub struct InstallWizard {
   pub dry_run: bool,
   pub continue_after_failure: bool,
   already_ran_apt_update: bool,
 }
 
-impl InstallDriver {
+impl InstallWizard {
   /// Initialize the driver from the CLI args.
   pub fn new(settings: Cli) -> Self {
     Self {

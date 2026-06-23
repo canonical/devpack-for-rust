@@ -3,11 +3,11 @@ use console::Key;
 use eyre::bail;
 use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
-use crate::driver::InstallDriver;
+use crate::wizard::InstallWizard;
 
-mod driver;
 mod recipe;
 mod selection_tree;
+mod wizard;
 
 /// Devpack for Rust -- an easy installer for Rustup, IDEs, and Rusty accessories.
 #[derive(Default, Parser)]
@@ -50,7 +50,7 @@ fn main() -> eyre::Result<()> {
   let selected = console_driver.interactor.get_all_selected_data();
   let selected_recipes = selected.iter().map(|smad| &smad.data).collect::<Vec<_>>();
 
-  let mut install_driver = InstallDriver::new(settings);
+  let mut install_driver = InstallWizard::new(settings);
   for recipe in selected_recipes.iter() {
     'steps: for step in recipe.steps.iter() {
       let res = step.execute(&mut install_driver);
