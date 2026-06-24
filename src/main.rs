@@ -74,5 +74,7 @@ fn main() -> eyre::Result<()> {
     }
   }
 
+  println!("All done! Enjoy your devpack-for-rust!");
+
   Ok(())
 }
