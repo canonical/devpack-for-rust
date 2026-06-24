@@ -123,7 +123,8 @@ impl InstallWizard {
           }
         };
 
-        file.write_all(alias.as_bytes())?;
+        println!("[devpack-for-rust] aliasing {}={}", name, command);
+        writeln!(file, "{}", alias)?;
         Ok(())
       }
     }

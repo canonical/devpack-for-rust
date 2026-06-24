@@ -14,7 +14,11 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
   )
   .with_child(rust_channel("stable"))
   .with_child(rust_channel("beta"))
-  .with_child(rust_channel("nightly"));
+  .with_child(rust_channel("nightly"))
+  .with_child(TreeNodeDefinition::new(
+    NodeDefinitionType::Text,
+    StyledMsgAndData::unstyled("DEBUG don't try to install rust", InstallRecipe::noop()),
+  ));
 
   let ide = TreeNodeDefinition::new(
     NodeDefinitionType::PickOneChild { mandatory: true },

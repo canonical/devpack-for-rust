@@ -78,13 +78,19 @@ impl ShellType {
 
   pub fn config_file_location(&self) -> PathBuf {
     match self {
-      ShellType::Bash => PathBuf::from("~/.bash_aliases"),
+      ShellType::Bash => unwrap_home_dir().join(".bash_aliases"),
       // TODO: is this actually-actually portable?
       // who uses sh anyways
-      ShellType::Posix => PathBuf::from("~/.profile"),
-      // TODO: need to grab XDG_CONFIG_DIR?
-      ShellType::Fish => PathBuf::from("~/.fish/config/functions/devpack-for-rust.fish"),
-      ShellType::Zsh => PathBuf::from("~/.zshrc"),
+      ShellType::Posix => unwrap_home_dir().join(".profile"),
+      ShellType::Zsh => unwrap_home_dir().join("~/.zshrc"),
+      // fish is special
+      ShellType::Fish => {
+        let cfg_dir = dirs::config_dir().unwrap_or_else(|| {
+          eprintln!("[devpack-for-rust] couldn't find config dir, defaulting to ~/.config");
+          unwrap_home_dir().join(".config")
+        });
+        cfg_dir.join("fish/functions/devpack-for-rust.fish")
+      }
     }
   }
 
@@ -108,4 +114,8 @@ impl ShellType {
       ),
     }
   }
+}
+
+fn unwrap_home_dir() -> PathBuf {
+  dirs::home_dir().expect("could not find your home directory somehow")
 }
