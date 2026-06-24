@@ -1,15 +1,14 @@
 #![cfg(target_os = "linux")]
 
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use console::Key;
-use eyre::bail;
 use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
-use crate::wizard::InstallWizard;
+use crate::{shell_type::ShellType, wizard::InstallWizard};
 
-mod guess_shell;
 mod recipe;
 mod selection_tree;
+mod shell_type;
 mod wizard;
 
 /// Devpack for Rust -- an easy installer for Rustup, IDEs, and Rusty accessories.
@@ -25,30 +24,11 @@ pub struct Cli {
   /// Override the automatic shell detection and use the given shell type.
   /// This is used to figure out how to make aliases for your shell.
   #[arg(short = 'S', long)]
-  pub override_shell_type: Option<ShellTypeCli>,
-}
-
-// separate enum to avoid exposing [`ShellType::Err`] to the user
-#[derive(ValueEnum, Clone, Copy)]
-pub enum ShellTypeCli {
-  /// POSIX-compatible shell, like bash, sh, csh, etc
-  Posix,
-  /// The Friendly Interactive Shell
-  Fish,
-  /// Zshell
-  Zsh,
+  pub override_shell_type: Option<ShellType>,
 }
 
 fn main() -> eyre::Result<()> {
-  // Parse settings before the root check so `--help` and friends works
   let settings = Cli::parse();
-
-  let privileges = sudo::check();
-  if privileges != sudo::RunningAs::Root {
-    // the `sudo` crate supports restarting the program as root,
-    // but I would rather be explicit than implicit and require the user manually invoke sudo
-    bail!("devpack-for-rust must be run as root.");
-  }
 
   let tree = selection_tree::make_tree();
   let mut console_driver = ConsoleDriver::new_stdout(Palette::fancy(), tree);
@@ -68,12 +48,12 @@ fn main() -> eyre::Result<()> {
   let selected = console_driver.interactor.get_all_selected_data();
   let selected_recipes = selected.iter().map(|smad| &smad.data).collect::<Vec<_>>();
 
-  let mut install_driver = InstallWizard::new(settings);
+  let mut install_wizard = InstallWizard::new(settings);
   for recipe in selected_recipes.iter() {
     'steps: for step in recipe.steps.iter() {
-      let res = step.execute(&mut install_driver);
+      let res = install_wizard.execute_step(step);
       if let Err(oh_no) = res {
-        if install_driver.continue_after_failure {
+        if install_wizard.continue_after_failure {
           eprintln!("[devpack-for-rust] A recipe failed with the following error:");
           eprintln!("{:?}", oh_no);
           // the further steps of this recipe don't make sense,
