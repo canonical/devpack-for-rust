@@ -2,6 +2,7 @@
 
 use clap::Parser;
 use console::Key;
+use log::warn;
 use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
 use crate::{shell_type::ShellType, wizard::InstallWizard};
@@ -25,10 +26,16 @@ pub struct Cli {
   /// This is used to figure out how to make aliases for your shell.
   #[arg(short = 'S', long)]
   pub override_shell_type: Option<ShellType>,
+
+  #[command(flatten)]
+  pub verbosity: clap_verbosity_flag::Verbosity,
 }
 
 fn main() -> eyre::Result<()> {
   let settings = Cli::parse();
+  env_logger::Builder::new()
+    .filter_level(settings.verbosity.into())
+    .init();
 
   let tree = selection_tree::make_tree();
   let mut console_driver = ConsoleDriver::new_stdout(Palette::fancy(), tree);
@@ -54,11 +61,10 @@ fn main() -> eyre::Result<()> {
       let res = install_wizard.execute_step(step);
       if let Err(oh_no) = res {
         if install_wizard.continue_after_failure {
-          eprintln!("[devpack-for-rust] A recipe failed with the following error:");
-          eprintln!("{:?}", oh_no);
+          warn!("A recipe failed with the following error: {:?}", oh_no);
           // the further steps of this recipe don't make sense,
           // but nevertheless try to continue with the user's other demands
-          eprintln!("[devpack-for-rust] Continuing with further recipes as requested.");
+          warn!("Continuing with further recipes as requested.");
           break 'steps;
         } else {
           // quit!

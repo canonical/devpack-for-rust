@@ -6,6 +6,8 @@ use std::{
 };
 
 use eyre::{Context, bail};
+use log::error;
+use log::info;
 
 use crate::{Cli, recipe::InstallStep, shell_type::ShellType};
 
@@ -25,12 +27,12 @@ impl InstallWizard {
       Some(it) => Ok(it),
       None => match ShellType::guess_shell() {
         Ok(it) => {
-          println!("[devpack-for-rust] autodetected shell type as {:?}", it);
+          info!("autodetected shell type as {:?}", it);
           Ok(it)
         }
         Err(oh_no) => {
-          eprintln!(
-            "[devpack-for-rust] failed to detect shell type! {:?}",
+          error!(
+            "failed to detect shell type but continuing anyways: {:?}",
             oh_no
           );
           Err(())
@@ -59,22 +61,17 @@ impl InstallWizard {
           Ok(it) => it,
           Err(_) => {
             if self.dry_run {
-              println!(
-                "[devpack-for-rust] did not find rustup, but we are dry-running, so it's okay"
-              );
+              info!("did not find rustup, but we are dry-running, so it's okay");
               return Ok(());
             } else {
-              eprintln!("[devpack-for-rust] did not find rustup, installing it with snap ...");
+              info!("did not find rustup, installing it with snap ...");
               self.install_snap("rustup", true)?;
               which::which("rustup")
                 .wrap_err("even after `snap install`-ing rustup, could not find it")?
             }
           }
         };
-        println!(
-          "[devpack-for-rust] Using rustup to install rust channel {:?} ...",
-          &channel
-        );
+        info!("Using rustup to install rust channel {:?} ...", &channel);
         let rustup_status = self.maybe_dry_run_command(rustup_path, &["default", channel])?;
         if !rustup_status.success() {
           bail!("rustup invocation failed with error code {}", rustup_status);
@@ -96,12 +93,13 @@ impl InstallWizard {
         };
 
         let alias = shell.format_alias(name, command);
+        info!(
+          "writing following alias in file {}:\n{}",
+          shell.config_file_location().display(),
+          &alias,
+        );
+
         if self.dry_run {
-          println!(
-            "[devpack-for-rust] skipping writing following alias in file {} due to dry run:\n{}",
-            shell.config_file_location().display(),
-            &alias,
-          );
           return Ok(());
         }
 
@@ -123,7 +121,6 @@ impl InstallWizard {
           }
         };
 
-        println!("[devpack-for-rust] aliasing {}={}", name, command);
         writeln!(file, "{}", alias)?;
         Ok(())
       }
@@ -145,12 +142,14 @@ impl InstallWizard {
     let cmd = cmd.as_ref();
     let args = args.into_iter().map(AsRef::as_ref).collect::<Vec<_>>();
 
+    let run_verb = if self.dry_run {
+      "dry-\"running\""
+    } else {
+      "running"
+    };
+    info!("{} command: {} {:?}", run_verb, cmd.display(), &args);
+
     if self.dry_run {
-      println!(
-        "[devpack-for-rust] not running due to --dry-run: {} {:?}",
-        cmd.display(),
-        &args
-      );
       // default impl is success
       Ok(ExitStatus::default())
     } else {
@@ -164,7 +163,7 @@ impl InstallWizard {
   ///
   /// Also run `sudo apt update` the first time this function is called
   fn install_apt(&mut self, pkg_name: &str) -> eyre::Result<()> {
-    println!("[devpack-for-rust] Using apt to install {:?} ...", pkg_name);
+    info!("Using apt to install {:?} ...", pkg_name);
     if !self.already_ran_apt_update {
       let apt_status = self.maybe_dry_run_command("sudo", &["apt", "update"])?;
       if !apt_status.success() {
@@ -188,8 +187,8 @@ impl InstallWizard {
 
   /// Install a snap using `sudo snap install`
   fn install_snap(&self, package_name: &str, classic_confinement: bool) -> eyre::Result<()> {
-    println!(
-      "[devpack-for-rust] using snap to install {:?}{} ...",
+    info!(
+      "using snap to install {:?}{} ...",
       package_name,
       if classic_confinement {
         " with --classic confinement"

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::ValueEnum;
 use eyre::{Context, bail, eyre};
+use log::warn;
 use procfs::process::Process;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -86,7 +87,7 @@ impl ShellType {
       // fish is special
       ShellType::Fish => {
         let cfg_dir = dirs::config_dir().unwrap_or_else(|| {
-          eprintln!("[devpack-for-rust] couldn't find config dir, defaulting to ~/.config");
+          warn!("couldn't find config dir, defaulting to ~/.config");
           unwrap_home_dir().join(".config")
         });
         cfg_dir.join("fish/functions/devpack-for-rust.fish")
