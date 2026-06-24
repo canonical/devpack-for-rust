@@ -1,10 +1,13 @@
-use clap::Parser;
+#![cfg(target_os = "linux")]
+
+use clap::{Parser, ValueEnum};
 use console::Key;
 use eyre::bail;
 use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
 use crate::wizard::InstallWizard;
 
+mod guess_shell;
 mod recipe;
 mod selection_tree;
 mod wizard;
@@ -19,6 +22,21 @@ pub struct Cli {
   #[arg(short = 'd', long)]
   /// Print what will be done, but don't actually execute any commands.
   pub dry_run: bool,
+  /// Override the automatic shell detection and use the given shell type.
+  /// This is used to figure out how to make aliases for your shell.
+  #[arg(short = 'S', long)]
+  pub override_shell_type: Option<ShellTypeCli>,
+}
+
+// separate enum to avoid exposing [`ShellType::Err`] to the user
+#[derive(ValueEnum, Clone, Copy)]
+pub enum ShellTypeCli {
+  /// POSIX-compatible shell, like bash, sh, csh, etc
+  Posix,
+  /// The Friendly Interactive Shell
+  Fish,
+  /// Zshell
+  Zsh,
 }
 
 fn main() -> eyre::Result<()> {

@@ -5,21 +5,34 @@ use std::{
 
 use eyre::bail;
 
-use crate::Cli;
+use crate::{Cli, ShellTypeCli, guess_shell::ShellType};
 
 pub struct InstallWizard {
   pub dry_run: bool,
   pub continue_after_failure: bool,
+  pub shell_type: ShellType,
   already_ran_apt_update: bool,
 }
 
 impl InstallWizard {
   /// Initialize the driver from the CLI args.
   pub fn new(settings: Cli) -> Self {
+    let shell_type = match settings.override_shell_type {
+      Some(ShellTypeCli::Posix) => ShellType::Posix,
+      Some(ShellTypeCli::Fish) => ShellType::Fish,
+      Some(ShellTypeCli::Zsh) => ShellType::Zsh,
+      None => {
+        let st = ShellType::guess_shell();
+        println!("[devpack-for-rust] autodetected shell type as {:?}", st);
+        st
+      }
+    };
+
     Self {
       already_ran_apt_update: false,
       dry_run: settings.dry_run,
       continue_after_failure: settings.continue_after_failure,
+      shell_type,
     }
   }
 

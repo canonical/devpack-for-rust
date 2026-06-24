@@ -77,7 +77,10 @@ impl InstallStep {
         package_name,
         classic_confinement,
       } => driver.install_snap(package_name, *classic_confinement),
-      InstallStep::MakeAlias { name, command } => todo!(),
+      InstallStep::MakeAlias { name, command } => {
+        println!("[devpack-for-rust] TEMP: aliasing {}={}", name, command);
+        Ok(())
+      }
     }
   }
 }
