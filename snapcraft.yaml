@@ -1,0 +1,21 @@
+name: devpack-for-rust
+title: Devpack for Rust
+license: MIT
+version: "0.0.0"
+summary: Zero to Rust development in seconds.
+description: |
+  An install wizard for batteries-included Rust development. Pick your version of rustc,
+  your IDE, and your favorite oxidized tools, and let the tool do the rest.
+base: core26
+# Requires access to apt and snap
+confinement: classic
+source-code: https://github.com/canonical/devpack-for-rust
+
+parts:
+  devpack-for-rust:
+    plugin: rust
+    source: .
+
+apps:
+  devpack-for-rust:
+    command: bin/devpack-for-rust
