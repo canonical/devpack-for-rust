@@ -31,5 +31,6 @@ pub enum InstallStep {
   MakeAlias {
     name: String,
     command: String,
-  }, // Command(Vec<String>),
+  },
+  // Command(Vec<String>),
 }

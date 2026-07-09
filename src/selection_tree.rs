@@ -32,7 +32,19 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
     "helix",
     true,
   ))
-  .with_child(snap("VSCode", "code", true));
+  .with_child(snap(
+    "VSCode: Your home for multi-agent development (https://code.visualstudio.com/)",
+    "code",
+    true,
+  ))
+  .with_child(snap(
+    "RustRover: JetBrains' powerful IDE for Rust (https://www.jetbrains.com/rust/)",
+    "rustrover",
+    true,
+  ));
+  // - rustrover
+  // - zed
+  // - can auto download vscode rust extension?
 
   let extras = TreeNodeDefinition::new(
     NodeDefinitionType::PickManyChildren,
@@ -42,11 +54,11 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
     },
   )
   .with_child(apt(
-    "du-dust: alternative to du (https://github.com/bootandy/dust)",
+    "du-dust: a more intuitive version of du (https://github.com/bootandy/dust)",
     "du-dust",
   ))
   .with_child(apt_with_alias(
-    "fd-find: alternative to find (https://github.com/sharkdp/fd)",
+    "fd-find: simple, fast and user-friendly alternative to 'find' (https://github.com/sharkdp/fd)",
     "fd-find",
     "fd",
     "fdfind",
@@ -56,6 +68,10 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
     "ripgrep",
     "rg",
     "ripgrep",
+  ))
+  .with_child(apt(
+    "sd: intuitive find & replace cli (https://github.com/chmln/sd)",
+    "sd",
   ));
 
   TreeDefinition::new(
