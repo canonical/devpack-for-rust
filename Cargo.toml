@@ -1,6 +1,6 @@
 [package]
 name = "devpack-for-rust"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 
 [dependencies]
@@ -12,5 +12,6 @@ env_logger = "0.11.10"
 eyre = "0.6.12"
 log = "0.4.33"
 procfs = "0.18.0"
-treeversal = { version = "0.2.0", features = ["console"] }
+sudo = "0.6.0"
+treeversal = { version = "0.3.0", features = ["console"] }
 which = "8.0.4"

@@ -6,7 +6,6 @@ use std::{
 };
 
 use eyre::{Context, bail};
-use log::error;
 use log::info;
 
 use crate::{Cli, recipe::InstallStep, shell_type::ShellType};
@@ -22,24 +21,7 @@ pub struct InstallWizard {
 
 impl InstallWizard {
   /// Initialize the driver from the CLI args.
-  pub fn new(settings: Cli) -> Self {
-    let shell_type = match settings.override_shell_type {
-      Some(it) => Ok(it),
-      None => match ShellType::guess_shell() {
-        Ok(it) => {
-          info!("autodetected shell type as {:?}", it);
-          Ok(it)
-        }
-        Err(oh_no) => {
-          error!(
-            "failed to detect shell type but continuing anyways: {:?}",
-            oh_no
-          );
-          Err(())
-        }
-      },
-    };
-
+  pub fn new(settings: Cli, shell_type: Result<ShellType, ()>) -> Self {
     Self {
       dry_run: settings.dry_run,
       continue_after_failure: settings.continue_after_failure,

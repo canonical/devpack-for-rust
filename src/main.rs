@@ -2,6 +2,7 @@
 
 use clap::Parser;
 use console::Key;
+use eyre::bail;
 use log::warn;
 use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
@@ -37,6 +38,21 @@ fn main() -> eyre::Result<()> {
     .filter_level(settings.verbosity.into())
     .init();
 
+  if sudo::check() == sudo::RunningAs::User {
+    bail!("Please run devpack-for-rust as root.");
+  }
+
+  let shell_type = match settings.override_shell_type {
+    Some(it) => Ok(it),
+    None => ShellType::guess_shell().map_err(|_| ()),
+  };
+  println!("Welcome to devpack-for-rust! Run with --help for more information.");
+  if let Ok(shell_type) = shell_type {
+    println!("Your shell has been autodetected as: {:?}", shell_type);
+  } else {
+    println!("Your shell could not be autodetected.")
+  }
+
   let tree = selection_tree::make_tree();
   let mut console_driver = ConsoleDriver::new_stdout(Palette::fancy(), tree);
   console_driver.print_tree();
@@ -55,7 +71,7 @@ fn main() -> eyre::Result<()> {
   let selected = console_driver.interactor.get_all_selected_data();
   let selected_recipes = selected.iter().map(|smad| &smad.data).collect::<Vec<_>>();
 
-  let mut install_wizard = InstallWizard::new(settings);
+  let mut install_wizard = InstallWizard::new(settings, shell_type);
   for recipe in selected_recipes.iter() {
     'steps: for step in recipe.steps.iter() {
       let res = install_wizard.execute_step(step);

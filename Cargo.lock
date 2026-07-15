@@ -244,7 +244,7 @@ dependencies = [
 
 [[package]]
 name = "devpack-for-rust"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "clap",
  "clap-verbosity-flag",
@@ -254,6 +254,7 @@ dependencies = [
  "eyre",
  "log",
  "procfs",
+ "sudo",
  "treeversal",
  "which",
 ]
@@ -733,6 +734,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+name = "sudo"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88bd84d4c082e18e37fef52c0088e4407dabcef19d23a607fb4b5ee03b7d5b83"
+dependencies = [
+ "libc",
+ "log",
+]
+
+[[package]]
 name = "syn"
 version = "2.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -765,9 +776,9 @@ dependencies = [
 
 [[package]]
 name = "treeversal"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1747c6e5ec352f51113c4c576dcafc34f76f7ca544b99de4e9104899e6399b72"
+checksum = "45bb368e882ca3e1340fca63042356347702bd07f29882a04ed0ed9f99781842"
 dependencies = [
  "console",
  "getset",

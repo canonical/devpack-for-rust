@@ -1,78 +1,64 @@
 use treeversal::{
-  NodeDefinitionType, TreeDefinition, TreeNodeDefinition, console_driver::StyledMsgAndData,
+  NodeDefinitionType, TreeDefinition, TreeNodeDefinition, console_driver::StyledMsgAndData, dsl,
 };
 
 use crate::recipe::{InstallRecipe, InstallStep};
 
 pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
-  let rust_version = TreeNodeDefinition::new(
-    NodeDefinitionType::PickOneChild { mandatory: true },
-    StyledMsgAndData {
-      message: console::style("Pick a Rust channel".to_string()),
-      data: InstallRecipe::noop(),
-    },
-  )
-  .with_child(rust_channel("stable"))
-  .with_child(rust_channel("beta"))
-  .with_child(rust_channel("nightly"))
-  .with_child(TreeNodeDefinition::new(
-    NodeDefinitionType::Text,
-    StyledMsgAndData::unstyled("DEBUG don't try to install rust", InstallRecipe::noop()),
-  ));
+  let rust_version = text("Pick a rust channel")
+    .with_child(rust_channel("stable"))
+    .with_child(rust_channel("beta"))
+    .with_child(rust_channel("nightly"));
 
-  let ide = TreeNodeDefinition::new(
-    NodeDefinitionType::PickOneChild { mandatory: true },
-    StyledMsgAndData {
-      message: console::style("Pick an IDE?".to_string()),
-      data: InstallRecipe::noop(),
-    },
-  )
-  .with_child(snap(
-    "Helix: A post-modern text editor (https://helix-editor.com/)",
-    "helix",
-    true,
-  ))
-  .with_child(snap(
-    "VSCode: Your home for multi-agent development (https://code.visualstudio.com/)",
-    "code",
-    true,
-  ))
-  .with_child(snap(
-    "RustRover: JetBrains' powerful IDE for Rust (https://www.jetbrains.com/rust/)",
-    "rustrover",
-    true,
-  ));
-  // - rustrover
+  let ide = text("Pick an IDE?")
+    .with_child(dsl::pick_up_to_one(snap_step(
+      "Helix: A post-modern text editor (https://helix-editor.com/)",
+      "helix",
+      true,
+    )))
+    .with_child(dsl::pick_up_to_one(snap_step(
+      "VSCode: Your home for multi-agent development (https://code.visualstudio.com/)",
+      "code",
+      true,
+    )))
+    .with_child(dsl::pick_up_to_one(snap_step(
+      "RustRover: JetBrains' powerful IDE for Rust (https://www.jetbrains.com/rust/)",
+      "rustrover",
+      true,
+    )));
   // - zed
   // - can auto download vscode rust extension?
 
-  let extras = TreeNodeDefinition::new(
-    NodeDefinitionType::PickManyChildren,
-    StyledMsgAndData {
-      message: console::style("Oxidize your tooling?".to_string()),
-      data: InstallRecipe::noop(),
-    },
-  )
-  .with_child(apt(
-    "du-dust: a more intuitive version of du (https://github.com/bootandy/dust)",
-    "du-dust",
-  ))
-  .with_child(apt_with_alias(
-    "fd-find: simple, fast and user-friendly alternative to 'find' (https://github.com/sharkdp/fd)",
-    "fd-find",
-    "fd",
-    "fdfind",
-  ))
-  .with_child(apt_with_alias(
-    "ripgrep: recursively search directories (https://github.com/BurntSushi/ripgrep)",
-    "ripgrep",
-    "rg",
-    "ripgrep",
-  ))
-  .with_child(apt(
-    "sd: intuitive find & replace cli (https://github.com/chmln/sd)",
-    "sd",
-  ));
+  // using backslash strings here because rust-fmt has trouble with very long strings
+  let extras = text("Oxidize your tooling?")
+    .with_child(dsl::pick_many(apt_step(
+      "du-dust: a more intuitive version of du\
+       (https://github.com/bootandy/dust)",
+      "du-dust",
+    )))
+    .with_child(
+      dsl::pick_many(apt_step(
+        "fd-find: simple, fast and user-friendly alternative to 'find'\
+         (https://github.com/sharkdp/fd)",
+        "fd-find",
+      ))
+      .with_pick_children_needs_self(true)
+      .with_child(dsl::pick_up_to_one(alias_step("fd", "fdfind"))),
+    )
+    .with_child(
+      dsl::pick_many(apt_step(
+        "ripgrep: recursively search directories\
+         (https://github.com/BurntSushi/ripgrep)",
+        "ripgrep",
+      ))
+      .with_pick_children_needs_self(true)
+      .with_child(dsl::pick_up_to_one(alias_step("rg", "ripgrep"))),
+    )
+    .with_child(dsl::pick_many(apt_step(
+      "sd: intuitive find & replace cli\
+       (https://github.com/chmln/sd)",
+      "sd",
+    )));
 
   TreeDefinition::new(
     text("Customize your devpack-for-rust.")
@@ -85,6 +71,7 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
           message: console::style("All done?".to_string()),
           data: InstallRecipe::noop(),
         },
+        false,
       )),
   )
 }
@@ -96,6 +83,7 @@ fn text(msg: impl AsRef<str>) -> TreeNodeDefinition<StyledMsgAndData<InstallReci
       message: console::style(msg.as_ref().to_owned()),
       data: InstallRecipe::noop(),
     },
+    false,
   )
 }
 
@@ -104,62 +92,42 @@ fn rust_channel(channel: impl AsRef<str>) -> TreeNodeDefinition<StyledMsgAndData
   // TODO: custom channel?
   // TODO: is "channel" the right word for this
   TreeNodeDefinition::new(
-    NodeDefinitionType::Text,
+    NodeDefinitionType::PickExactlyOne,
     StyledMsgAndData {
       data: InstallRecipe::onestep(InstallStep::RustChannel(channel.to_string())),
       message: console::style(channel.to_string()),
     },
+    false,
   )
 }
 
-fn snap(
+fn snap_step(
   blurb: &str,
   program: &str,
   classic_confinement: bool,
-) -> TreeNodeDefinition<StyledMsgAndData<InstallRecipe>> {
-  TreeNodeDefinition::new(
-    NodeDefinitionType::Text,
-    StyledMsgAndData {
-      message: console::style(blurb.to_string()),
-      data: InstallRecipe::onestep(InstallStep::Snap {
-        package_name: program.to_string(),
-        classic_confinement,
-      }),
-    },
-  )
+) -> StyledMsgAndData<InstallRecipe> {
+  StyledMsgAndData {
+    message: console::style(blurb.to_string()),
+    data: InstallRecipe::onestep(InstallStep::Snap {
+      package_name: program.to_string(),
+      classic_confinement,
+    }),
+  }
 }
 
-fn apt(blurb: &str, package_name: &str) -> TreeNodeDefinition<StyledMsgAndData<InstallRecipe>> {
-  TreeNodeDefinition::new(
-    NodeDefinitionType::Text,
-    StyledMsgAndData {
-      message: console::style(blurb.to_string()),
-      data: InstallRecipe::onestep(InstallStep::Apt(package_name.to_string())),
-    },
-  )
+fn apt_step(blurb: &str, package_name: &str) -> StyledMsgAndData<InstallRecipe> {
+  StyledMsgAndData {
+    message: console::style(blurb.to_string()),
+    data: InstallRecipe::onestep(InstallStep::Apt(package_name.to_string())),
+  }
 }
 
-fn apt_with_alias(
-  blurb: &str,
-  package_name: &str,
-  shortcut: &str,
-  cmd_name: &str,
-) -> TreeNodeDefinition<StyledMsgAndData<InstallRecipe>> {
-  TreeNodeDefinition::new(
-    NodeDefinitionType::PickOneChild { mandatory: false },
-    StyledMsgAndData {
-      message: console::style(blurb.to_string()),
-      data: InstallRecipe::onestep(InstallStep::Apt(package_name.to_string())),
-    },
-  )
-  .with_child(TreeNodeDefinition::new(
-    NodeDefinitionType::Text,
-    StyledMsgAndData {
-      message: console::style(format!("alias {}={}?", shortcut, cmd_name)),
-      data: InstallRecipe::onestep(InstallStep::MakeAlias {
-        name: shortcut.to_string(),
-        command: cmd_name.to_string(),
-      }),
-    },
-  ))
+fn alias_step(shortcut: &str, cmd_name: &str) -> StyledMsgAndData<InstallRecipe> {
+  StyledMsgAndData {
+    message: console::style(format!("alias {}={}?", shortcut, cmd_name)),
+    data: InstallRecipe::onestep(InstallStep::MakeAlias {
+      name: shortcut.to_string(),
+      command: cmd_name.to_string(),
+    }),
+  }
 }
