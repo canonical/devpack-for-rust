@@ -32,13 +32,13 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
   // using backslash strings here because rust-fmt has trouble with very long strings
   let extras = text("Oxidize your tooling?")
     .with_child(dsl::pick_many(apt_step(
-      "du-dust: a more intuitive version of du\
+      "du-dust: a more intuitive version of du \
        (https://github.com/bootandy/dust)",
       "du-dust",
     )))
     .with_child(
       dsl::pick_many(apt_step(
-        "fd-find: simple, fast and user-friendly alternative to 'find'\
+        "fd-find: simple, fast and user-friendly alternative to 'find' \
          (https://github.com/sharkdp/fd)",
         "fd-find",
       ))
@@ -47,7 +47,7 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
     )
     .with_child(
       dsl::pick_many(apt_step(
-        "ripgrep: recursively search directories\
+        "ripgrep: recursively search directories \
          (https://github.com/BurntSushi/ripgrep)",
         "ripgrep",
       ))
@@ -55,7 +55,7 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
       .with_child(dsl::pick_up_to_one(alias_step("rg", "ripgrep"))),
     )
     .with_child(dsl::pick_many(apt_step(
-      "sd: intuitive find & replace cli\
+      "sd: intuitive find & replace cli \
        (https://github.com/chmln/sd)",
       "sd",
     )));

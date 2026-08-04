@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use clap::ValueEnum;
 use eyre::{Context, bail, eyre};
-use log::warn;
 use procfs::process::Process;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -77,20 +76,21 @@ impl ShellType {
     Ok(Some(ty))
   }
 
+  /// Append this to the home directory.
   pub fn config_file_location(&self) -> PathBuf {
     match self {
-      ShellType::Bash => unwrap_home_dir().join(".bash_aliases"),
+      ShellType::Bash => PathBuf::from(".bash_aliases"),
       // TODO: is this actually-actually portable?
       // who uses sh anyways
-      ShellType::Posix => unwrap_home_dir().join(".profile"),
-      ShellType::Zsh => unwrap_home_dir().join("~/.zshrc"),
+      ShellType::Posix => PathBuf::from(".profile"),
+      ShellType::Zsh => PathBuf::from(".zshrc"),
       // fish is special
       ShellType::Fish => {
-        let cfg_dir = dirs::config_dir().unwrap_or_else(|| {
-          warn!("couldn't find config dir, defaulting to ~/.config");
-          unwrap_home_dir().join(".config")
-        });
-        cfg_dir.join("fish/functions/devpack-for-rust.fish")
+        // it is technically a bad assumption to use ~/.config
+        // as the fish config dir.
+        // however, getting the xdg dirs of another user is EXTREMELY
+        // difficult as it turns out
+        PathBuf::from(".config/fish/functions/devpack-for-rust.fish")
       }
     }
   }
@@ -115,8 +115,4 @@ impl ShellType {
       ),
     }
   }
-}
-
-fn unwrap_home_dir() -> PathBuf {
-  dirs::home_dir().expect("could not find your home directory somehow")
 }

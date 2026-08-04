@@ -1,11 +1,11 @@
 use std::{
-  ffi::OsStr,
+  ffi::{OsStr, OsString},
   fs::{File, OpenOptions},
   io::Write,
   process::ExitStatus,
 };
 
-use eyre::{Context, bail};
+use eyre::{Context, OptionExt, bail};
 use log::info;
 
 use crate::{Cli, recipe::InstallStep, shell_type::ShellType};
@@ -14,6 +14,7 @@ pub struct InstallWizard {
   pub dry_run: bool,
   pub continue_after_failure: bool,
   pub shell_type: Result<ShellType, ()>,
+  pub real_user: String,
 
   already_ran_apt_update: bool,
   config_file_handle: Option<File>,
@@ -21,11 +22,12 @@ pub struct InstallWizard {
 
 impl InstallWizard {
   /// Initialize the driver from the CLI args.
-  pub fn new(settings: Cli, shell_type: Result<ShellType, ()>) -> Self {
+  pub fn new(settings: Cli, shell_type: Result<ShellType, ()>, real_user: String) -> Self {
     Self {
       dry_run: settings.dry_run,
       continue_after_failure: settings.continue_after_failure,
       shell_type,
+      real_user,
 
       already_ran_apt_update: false,
       config_file_handle: None,
@@ -39,24 +41,22 @@ impl InstallWizard {
         Ok(())
       }
       InstallStep::RustChannel(channel) => {
-        let rustup_path = match which::which("rustup") {
-          Ok(it) => it,
-          Err(_) => {
-            if self.dry_run {
-              info!("did not find rustup, but we are dry-running, so it's okay");
-              return Ok(());
-            } else {
-              info!("did not find rustup, installing it with snap ...");
-              self.install_snap("rustup", true)?;
-              which::which("rustup")
-                .wrap_err("even after `snap install`-ing rustup, could not find it")?
-            }
-          }
-        };
         info!("Using rustup to install rust channel {:?} ...", &channel);
-        let rustup_status = self.maybe_dry_run_command(rustup_path, &["default", channel])?;
-        if !rustup_status.success() {
-          bail!("rustup invocation failed with error code {}", rustup_status);
+        let rustup_status_1 =
+          self.maybe_dry_run_command("snap", &["run", "rustup", "default", channel], true)?;
+        if rustup_status_1.code() == Some(1) {
+          // this is the code snap returns if it can't find rustup
+          if self.dry_run {
+            info!("did not find rustup, but we are dry-running, so it's okay");
+            return Ok(());
+          }
+          info!("did not find rustup, installing it with snap ...");
+          self.install_snap("rustup", true)?;
+          let rustup_status_2 =
+            self.maybe_dry_run_command("snap", &["run", "rustup", "default", channel], true)?;
+          if !rustup_status_2.success() {
+            bail!("could not snap run rustup even after snap installing it");
+          }
         }
         Ok(())
       }
@@ -74,10 +74,13 @@ impl InstallWizard {
           )
         };
 
+        let home_dir = homedir::home(&self.real_user)?
+          .ok_or_eyre("the given user did not have a home directory?")?;
         let alias = shell.format_alias(name, command);
+        let cfg_file_loc = home_dir.join(shell.config_file_location());
         info!(
           "writing following alias in file {}:\n{}",
-          shell.config_file_location().display(),
+          &cfg_file_loc.display(),
           &alias,
         );
 
@@ -88,12 +91,14 @@ impl InstallWizard {
         let file = match self.config_file_handle {
           Some(ref mut it) => it,
           None => {
-            let path = shell.config_file_location();
             let mut file = OpenOptions::new()
               .create(true)
               .append(true)
-              .open(&path)
-              .context(format!("trying to open config file at {}", path.display()))?;
+              .open(&cfg_file_loc)
+              .context(format!(
+                "trying to open config file at {}",
+                cfg_file_loc.display()
+              ))?;
             writeln!(
               &mut file,
               "\n\n{}devpack-for-rust aliases",
@@ -118,11 +123,32 @@ impl InstallWizard {
     &self,
     cmd: impl AsRef<OsStr>,
     args: &[impl AsRef<OsStr>],
+    drop_to_user: bool,
   ) -> eyre::Result<ExitStatus> {
     use std::process::Command;
 
-    let cmd = cmd.as_ref();
-    let args = args.into_iter().map(AsRef::as_ref).collect::<Vec<_>>();
+    let (cmd, args) = if drop_to_user {
+      let mut sudo_args = vec![
+        OsString::from("--user"),
+        OsString::from(&self.real_user),
+        cmd.as_ref().to_os_string(),
+      ];
+      sudo_args.extend(
+        args
+          .into_iter()
+          .map(|s| s.as_ref().to_os_string())
+          .collect::<Vec<_>>(),
+      );
+      (OsString::from("sudo"), sudo_args)
+    } else {
+      (
+        cmd.as_ref().to_os_string(),
+        args
+          .into_iter()
+          .map(|s| s.as_ref().to_os_string())
+          .collect::<Vec<_>>(),
+      )
+    };
 
     let run_verb = if self.dry_run {
       "dry-\"running\""
@@ -147,7 +173,7 @@ impl InstallWizard {
   fn install_apt(&mut self, pkg_name: &str) -> eyre::Result<()> {
     info!("Using apt to install {:?} ...", pkg_name);
     if !self.already_ran_apt_update {
-      let apt_status = self.maybe_dry_run_command("sudo", &["apt", "update"])?;
+      let apt_status = self.maybe_dry_run_command("apt", &["update"], false)?;
       if !apt_status.success() {
         bail!(
           "apt update invocation failed with error code {}",
@@ -157,7 +183,7 @@ impl InstallWizard {
       self.already_ran_apt_update = true;
     }
 
-    let apt_status = self.maybe_dry_run_command("sudo", &["apt", "install", pkg_name])?;
+    let apt_status = self.maybe_dry_run_command("apt", &["install", pkg_name], false)?;
     if !apt_status.success() {
       bail!(
         "apt install invocation failed with error code {}",
@@ -179,12 +205,12 @@ impl InstallWizard {
       }
     );
     // need to bind the cmd to a variable to appease borrowck
-    let mut args = vec!["snap", "install", package_name];
+    let mut args = vec!["install", package_name];
     if classic_confinement {
       args.push("--classic");
     }
 
-    let status = self.maybe_dry_run_command("sudo", &args)?;
+    let status = self.maybe_dry_run_command("snap", &args, false)?;
     if !status.success() {
       bail!("snap invocation failed with error code {}", status);
     }
