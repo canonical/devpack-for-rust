@@ -1,7 +1,7 @@
 name: devpack-for-rust
 title: Devpack for Rust
 license: GPL-3.0
-version: "0.0.0"
+version: "0.1.0"
 summary: Zero to Rust development in seconds.
 description: |
   An install wizard for batteries-included Rust development. Pick your version of rustc,
