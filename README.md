@@ -15,3 +15,11 @@ Use the arrow-keys or HJKL to navigate the tree, and space/enter to make your ch
 
 I'd love your feedback!
 I'm especially looking for Rust-based CLI tools for those who want to really oxidize their workflows.
+
+## License
+
+Copyright (C) 2026 Canonical Ltd.
+
+This project is free software, licensed under the GNU General Public License
+version 3 (or, at your option, any later version). See the [LICENSE](./LICENSE)
+file for the full text.

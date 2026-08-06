@@ -1,6 +1,6 @@
 name: devpack-for-rust
 title: Devpack for Rust
-license: MIT
+license: GPL-3.0
 version: "0.0.0"
 summary: Zero to Rust development in seconds.
 description: |
@@ -10,6 +10,9 @@ base: core26
 # Requires access to apt and snap
 confinement: classic
 source-code: https://github.com/canonical/devpack-for-rust
+website: https://github.com/canonical/devpack-for-rust
+contact: petrichor.park@canonical.com
+issues: https://github.com/canonical/devpack-for-rust/issues
 
 parts:
   devpack-for-rust:
