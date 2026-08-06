@@ -17,7 +17,7 @@ mod wizard;
 #[derive(Default, Parser)]
 #[command(version, about)]
 pub struct Cli {
-  /// If one recipe fails, choose whether to try and execute the other recipes.
+  /// If one install step fails, continue on with the other steps.
   #[arg(short = 'C', long)]
   pub continue_after_failure: bool,
   #[arg(short = 'd', long)]
