@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::{os::unix::ffi::OsStrExt, path::PathBuf};
 
 use clap::ValueEnum;
 use eyre::{Context, bail, eyre};
+use log::trace;
 use procfs::process::Process;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -43,6 +44,7 @@ impl ShellType {
     // use `cmdline` instead of `exe` because some shells
     // are polyglots; we care mostly how the USER invoked this.
     let proc_cli = process.cmdline()?;
+    trace!("guessing if this is a shell? {:?}", &proc_cli);
     let proc_cmd = proc_cli
       .get(0)
       .ok_or(eyre!("process somehow did not have a 0th argument"))?;
@@ -60,18 +62,22 @@ impl ShellType {
       bail!("process somehow did not have a file name")
     };
 
-    // unfortunately OsStr does not like `match`
-    // please don't use esoteric but posix-compliant shells
-    let ty = if filename == "bash" {
-      ShellType::Bash
-    } else if filename == "dash" || filename == "sh" || filename == "ksh" || filename == "csh" {
-      ShellType::Posix
-    } else if filename == "fish" {
-      ShellType::Fish
-    } else if filename == "zsh" {
-      ShellType::Zsh
-    } else {
-      return Ok(None);
+    // https://superuser.com/questions/278859/dash-in-front-of-bash/278865#278865
+    // > A login shell is one whose first character of argument zero is a -,
+    // > or one started with the --login option.
+    // in other words, `-coolshellname` == `coolshellname`
+    let filename_bytes = filename.as_bytes();
+    let filename_trimmed = match filename_bytes.strip_prefix(&[b'-']) {
+      Some(it) => it,
+      None => &filename_bytes,
+    };
+
+    let ty = match filename_trimmed {
+      b"bash" => ShellType::Bash,
+      b"dash" | b"sh" | b"ksh" | b"csh" => ShellType::Posix,
+      b"fish" => ShellType::Fish,
+      b"zsh" => ShellType::Zsh,
+      _ => return Ok(None),
     };
     Ok(Some(ty))
   }

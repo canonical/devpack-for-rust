@@ -2,7 +2,7 @@
 
 use clap::Parser;
 use console::Key;
-use eyre::{ContextCompat, bail, eyre};
+use eyre::{ContextCompat, eyre};
 use log::warn;
 use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
@@ -35,7 +35,7 @@ pub struct Cli {
   pub override_user: Option<String>,
 
   #[command(flatten)]
-  pub verbosity: clap_verbosity_flag::Verbosity,
+  pub verbosity: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
 }
 
 fn main() -> eyre::Result<()> {
@@ -45,7 +45,12 @@ fn main() -> eyre::Result<()> {
     .init();
 
   if sudo::check() == sudo::RunningAs::User {
-    bail!("Please run devpack-for-rust through sudo.");
+    // TODO: using bail! or otherwise returning Err(_) makes the program print the line number
+    // We want this for other errors, but it looks kind of messy in this case.
+    // std::process::exit is a bit of an antipattern, but I'm not sure how to return
+    // a non-zero exit code and also not print line info.
+    eprintln!("Please run devpack-for-rust through sudo.");
+    std::process::exit(1)
   }
 
   println!("Welcome to devpack-for-rust! Run with --help for more information.");
