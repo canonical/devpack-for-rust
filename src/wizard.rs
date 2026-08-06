@@ -6,7 +6,7 @@ use std::{
 };
 
 use eyre::{Context, OptionExt, bail};
-use log::info;
+use log::{info, trace};
 
 use crate::{Cli, recipe::InstallStep, shell_type::ShellType};
 
@@ -155,7 +155,7 @@ impl InstallWizard {
     } else {
       "running"
     };
-    info!("{} command: {} {:?}", run_verb, cmd.display(), &args);
+    trace!("{} command: {} {:?}", run_verb, cmd.display(), &args);
 
     if self.dry_run {
       // default impl is success
