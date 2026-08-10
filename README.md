@@ -23,3 +23,6 @@ Copyright (C) 2026 Canonical Ltd.
 This project is free software, licensed under the GNU General Public License
 version 3 (or, at your option, any later version). See the [LICENSE](./LICENSE)
 file for the full text.
+
+PLEASE NOTE that the tools that devpack-for-rust installs are under their own licenses, and are not affiliated with devpack-for-rust.
+See their repositories for their licensing information.
