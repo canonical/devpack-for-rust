@@ -50,7 +50,7 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
       "hyperfine",
     )));
 
-  let extras = text("Oxidize your tooling?")
+  let extras = text("Oxidize your command line?")
     .with_child(dsl::pick_many(apt_step(
       "du-dust: a more intuitive version of du \
        (https://github.com/bootandy/dust)",
