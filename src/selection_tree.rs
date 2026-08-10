@@ -78,6 +78,11 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
       "sd: intuitive find & replace cli \
        (https://github.com/chmln/sd)",
       "sd",
+    )))
+    .with_child(dsl::pick_many(apt_step(
+      "xh: friendly and fast tool for sending HTTP requests \
+       (https://github.com/ducaale/xh)",
+      "xh",
     )));
 
   TreeDefinition::new(
