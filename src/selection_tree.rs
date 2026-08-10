@@ -26,10 +26,30 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
       "rustrover",
       true,
     )));
-  // - zed
   // - can auto download vscode rust extension?
 
-  // using backslash strings here because rust-fmt has trouble with very long strings
+  // using backslash strings here because
+  // rust-fmt has trouble with very long strings
+  let dev_tools = text("Developer tools")
+    // just is available on both snap and apt,
+    // but is more up-to-date on snap
+    .with_child(dsl::pick_many(snap_step(
+      "just: handy way to save and run project-specific commands \
+       (https://github.com/casey/just)",
+      "just",
+      true,
+    )))
+    .with_child(dsl::pick_many(apt_step(
+      "bacon: background code checker \
+       (https://github.com/canop/bacon)",
+      "bacon",
+    )))
+    .with_child(dsl::pick_many(apt_step(
+      "hyperfine: command-line benchmarking tool \
+       (https://github.com/sharkdp/hyperfine)",
+      "hyperfine",
+    )));
+
   let extras = text("Oxidize your tooling?")
     .with_child(dsl::pick_many(apt_step(
       "du-dust: a more intuitive version of du \
@@ -64,6 +84,7 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
     text("Customize your devpack-for-rust.")
       .with_child(rust_version)
       .with_child(ide)
+      .with_child(dev_tools)
       .with_child(extras)
       .with_child(TreeNodeDefinition::new(
         NodeDefinitionType::AllDone,
