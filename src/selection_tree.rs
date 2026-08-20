@@ -39,34 +39,39 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
       "just",
       true,
     )))
-    .with_child(dsl::pick_many(apt_step(
+    // TODO: allow config of features?
+    .with_child(dsl::pick_many(cargo_install_step(
       "bacon: background code checker \
        (https://github.com/canop/bacon)",
       "bacon",
     )))
-    .with_child(dsl::pick_many(apt_step(
+    .with_child(dsl::pick_many(cargo_install_step(
       "hyperfine: command-line benchmarking tool \
        (https://github.com/sharkdp/hyperfine)",
       "hyperfine",
     )));
 
   let extras = text("Oxidize your command line?")
-    .with_child(dsl::pick_many(apt_step(
-      "du-dust: a more intuitive version of du \
-       (https://github.com/bootandy/dust)",
-      "du-dust",
-    )))
     .with_child(
-      dsl::pick_many(apt_step(
+      dsl::pick_many(cargo_install_step(
+        "du-dust: a more intuitive version of du \
+       (https://github.com/bootandy/dust)",
+        "du-dust",
+      ))
+      .with_pick_children_needs_self(true)
+      .with_child(dsl::pick_up_to_one(alias_step("dust", "du-dust"))),
+    )
+    .with_child(
+      dsl::pick_many(cargo_install_step(
         "fd-find: simple, fast and user-friendly alternative to 'find' \
          (https://github.com/sharkdp/fd)",
         "fd-find",
       ))
       .with_pick_children_needs_self(true)
-      .with_child(dsl::pick_up_to_one(alias_step("fd", "fdfind"))),
+      .with_child(dsl::pick_up_to_one(alias_step("fd", "fd-find"))),
     )
     .with_child(
-      dsl::pick_many(apt_step(
+      dsl::pick_many(cargo_install_step(
         "ripgrep: recursively search directories \
          (https://github.com/BurntSushi/ripgrep)",
         "ripgrep",
@@ -74,12 +79,12 @@ pub fn make_tree() -> TreeDefinition<StyledMsgAndData<InstallRecipe>> {
       .with_pick_children_needs_self(true)
       .with_child(dsl::pick_up_to_one(alias_step("rg", "ripgrep"))),
     )
-    .with_child(dsl::pick_many(apt_step(
+    .with_child(dsl::pick_many(cargo_install_step(
       "sd: intuitive find & replace cli \
        (https://github.com/chmln/sd)",
       "sd",
     )))
-    .with_child(dsl::pick_many(apt_step(
+    .with_child(dsl::pick_many(cargo_install_step(
       "xh: friendly and fast tool for sending HTTP requests \
        (https://github.com/ducaale/xh)",
       "xh",
@@ -141,10 +146,10 @@ fn snap_step(
   }
 }
 
-fn apt_step(blurb: &str, package_name: &str) -> StyledMsgAndData<InstallRecipe> {
+fn cargo_install_step(blurb: &str, package_name: &str) -> StyledMsgAndData<InstallRecipe> {
   StyledMsgAndData {
     message: console::style(blurb.to_string()),
-    data: InstallRecipe::onestep(InstallStep::Apt(package_name.to_string())),
+    data: InstallRecipe::onestep(InstallStep::CargoInstall(package_name.to_string())),
   }
 }
 

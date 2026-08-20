@@ -22,7 +22,7 @@ pub enum InstallStep {
   /// For header nodes, etc
   NoOp,
   RustChannel(String),
-  Apt(String),
+  CargoInstall(String),
   Snap {
     package_name: String,
     classic_confinement: bool,

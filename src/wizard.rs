@@ -16,7 +16,6 @@ pub struct InstallWizard {
   pub shell_type: Result<ShellType, ()>,
   pub real_user: String,
 
-  already_ran_apt_update: bool,
   config_file_handle: Option<File>,
 }
 
@@ -29,7 +28,6 @@ impl InstallWizard {
       shell_type,
       real_user,
 
-      already_ran_apt_update: false,
       config_file_handle: None,
     }
   }
@@ -60,7 +58,21 @@ impl InstallWizard {
         }
         Ok(())
       }
-      InstallStep::Apt(pkg_name) => self.install_apt(pkg_name),
+      InstallStep::CargoInstall(pkg_name) => {
+        info!("Using cargo to install {:?} ...", pkg_name);
+        // --locked makes sure it uses *exactly* the versions listed
+        // in the crate's Cargo.lock,
+        // ie exactly what the dev tested with
+        let cargo_status =
+          self.maybe_dry_run_command("cargo", &["install", "--locked", pkg_name], true)?;
+        if !cargo_status.success() {
+          bail!(
+            "cargo install invocation failed with error code {}",
+            cargo_status
+          );
+        }
+        Ok(())
+      }
       InstallStep::Snap {
         package_name,
         classic_confinement,
@@ -165,32 +177,6 @@ impl InstallWizard {
       command.args(args);
       command.status().map_err(Into::into)
     }
-  }
-
-  /// Install a package using `sudo apt install`.
-  ///
-  /// Also run `sudo apt update` the first time this function is called
-  fn install_apt(&mut self, pkg_name: &str) -> eyre::Result<()> {
-    info!("Using apt to install {:?} ...", pkg_name);
-    if !self.already_ran_apt_update {
-      let apt_status = self.maybe_dry_run_command("apt", &["update"], false)?;
-      if !apt_status.success() {
-        bail!(
-          "apt update invocation failed with error code {}",
-          apt_status
-        );
-      }
-      self.already_ran_apt_update = true;
-    }
-
-    let apt_status = self.maybe_dry_run_command("apt", &["install", pkg_name], false)?;
-    if !apt_status.success() {
-      bail!(
-        "apt install invocation failed with error code {}",
-        apt_status
-      );
-    }
-    Ok(())
   }
 
   /// Install a snap using `sudo snap install`
