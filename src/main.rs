@@ -34,6 +34,18 @@ pub struct Cli {
   #[arg(short = 'U', long)]
   pub override_user: Option<String>,
 
+  /// Skip the automatic check for a linker.
+  ///
+  /// A linker is required to compile Rust programs; therefore it
+  /// is mandatory both to do anything as a Rust programmer *and*
+  /// to use `cargo install` to install some of the programs
+  /// included with the devpack.
+  /// This program does a simple check to see if `cc` is in the path;
+  /// if your particular system provides a linker in some other way,
+  /// you can override the check here.
+  #[arg(long)]
+  pub skip_cc_check: bool,
+
   #[command(flatten)]
   pub verbosity: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
 }
@@ -50,6 +62,13 @@ fn main() -> eyre::Result<()> {
     // std::process::exit is a bit of an antipattern, but I'm not sure how to return
     // a non-zero exit code and also not print line info.
     eprintln!("Please run devpack-for-rust through sudo.");
+    std::process::exit(1)
+  }
+
+  if !settings.skip_cc_check && which::which("cc").is_err() {
+    eprintln!("You do not appear to have a linker installed!");
+    eprintln!("Please install a linker before continuing.");
+    eprintln!("(You can skip this check with `--skip-cc-check`)");
     std::process::exit(1)
   }
 

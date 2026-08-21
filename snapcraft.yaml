@@ -7,7 +7,6 @@ description: |
   An install wizard for batteries-included Rust development. Pick your version of rustc,
   your IDE, and your favorite oxidized tools, and let the tool do the rest.
 base: core26
-# Requires access to apt and snap
 confinement: classic
 source-code: https://github.com/canonical/devpack-for-rust
 website: https://github.com/canonical/devpack-for-rust
