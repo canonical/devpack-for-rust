@@ -13,18 +13,29 @@ mod selection_tree;
 mod shell_type;
 mod wizard;
 
-/// Devpack for Rust -- an easy installer for Rustup, IDEs, and Rusty accessories.
+/// an easy installer for rustup, IDEs, and rusty accessories
+///
+/// devpack-for-rust is an "install wizard" to make it easy to
+/// install a whole Rust development environment.
+/// You can install a Rust version via rustup, an IDE, and many
+/// rust-based command line utilities.
+///
+/// The wizard presents a tree interface. Navigate it with HJKL
+/// or the arrow keys.
+/// Use space or enter to (un)pick an option.
 #[derive(Default, Parser)]
 #[command(version, about)]
 pub struct Cli {
-  /// If one install step fails, continue on with the other steps.
-  #[arg(short = 'C', long)]
-  pub continue_after_failure: bool,
   #[arg(short = 'd', long)]
   /// Print what will be done, but don't actually execute any commands.
   pub dry_run: bool,
-  /// Override the automatic shell detection and use the given shell type.
-  /// This is used to figure out how to make aliases for your shell.
+  /// devpack-for-rust tries to guess the shell you are using so it
+  /// can properly create aliases.
+  /// It does this by recursively checking the parent process and
+  /// seeing if its `argv[0]` matches a known shell.
+  ///
+  /// Use this flag to override the shell detection and instead create
+  /// aliases in the given shell's format.
   #[arg(short = 'S', long)]
   pub override_shell_type: Option<ShellType>,
   /// Override the automatic user detection and install the programs under the given user.
@@ -36,15 +47,23 @@ pub struct Cli {
 
   /// Skip the automatic check for a linker.
   ///
-  /// A linker is required to compile Rust programs; therefore it
-  /// is mandatory both to do anything as a Rust programmer *and*
-  /// to use `cargo install` to install some of the programs
-  /// included with the devpack.
-  /// This program does a simple check to see if `cc` is in the path;
-  /// if your particular system provides a linker in some other way,
+  /// A linker is required to compile Rust programs;
+  /// this includes anything you might write *and* the programs
+  /// that devpack-for-rust uses `cargo install` to install.
+  ///
+  /// devpack-for-rust does a simple check to see if `cc` is in
+  /// the path and bails if it cannot find it.
+  /// If your particular system provides a linker in some other way,
   /// you can override the check here.
   #[arg(long)]
-  pub skip_cc_check: bool,
+  pub skip_linker_check: bool,
+
+  /// Usually, if one install step fails the whole program halts.
+  /// Use this flag to override this behavior.
+  ///
+  ///  Note this may cause cascading failures, as some steps depend on other steps.
+  #[arg(long)]
+  pub continue_after_failure: bool,
 
   #[command(flatten)]
   pub verbosity: clap_verbosity_flag::Verbosity<clap_verbosity_flag::InfoLevel>,
@@ -65,7 +84,7 @@ fn main() -> eyre::Result<()> {
     std::process::exit(1)
   }
 
-  if !settings.skip_cc_check && which::which("cc").is_err() {
+  if !settings.skip_linker_check && which::which("cc").is_err() {
     eprintln!("You do not appear to have a linker installed!");
     eprintln!("Please install a linker before continuing.");
     eprintln!("(You can skip this check with `--skip-cc-check`)");
