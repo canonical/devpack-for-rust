@@ -1,12 +1,14 @@
 use std::{
-  ffi::{OsStr, OsString},
+  ffi::OsStr,
   fs::{File, OpenOptions},
   io::Write,
+  os::unix::process::CommandExt,
   process::ExitStatus,
 };
 
-use eyre::{Context, OptionExt, bail};
+use eyre::{Context, ContextCompat, OptionExt, bail};
 use log::{info, trace};
+use users::os::unix::UserExt;
 
 use crate::{Cli, recipe::InstallStep, shell_type::ShellType};
 
@@ -17,6 +19,7 @@ pub struct InstallWizard {
   pub real_user: String,
 
   config_file_handle: Option<File>,
+  cached_real_user: Option<users::User>,
 }
 
 impl InstallWizard {
@@ -29,6 +32,7 @@ impl InstallWizard {
       real_user,
 
       config_file_handle: None,
+      cached_real_user: None,
     }
   }
 
@@ -40,8 +44,7 @@ impl InstallWizard {
       }
       InstallStep::RustChannel(channel) => {
         info!("Using rustup to install rust channel {:?} ...", &channel);
-        let rustup_status_1 =
-          self.maybe_dry_run_command("snap", &["run", "rustup", "default", channel], true)?;
+        let rustup_status_1 = self.maybe_dry_run_command("rustup", &["default", channel], true)?;
         if rustup_status_1.code() == Some(1) {
           // this is the code snap returns if it can't find rustup
           if self.dry_run {
@@ -51,7 +54,7 @@ impl InstallWizard {
           info!("did not find rustup, installing it with snap ...");
           self.install_snap("rustup", true)?;
           let rustup_status_2 =
-            self.maybe_dry_run_command("snap", &["run", "rustup", "default", channel], true)?;
+            self.maybe_dry_run_command("rustup", &["default", channel], true)?;
           if !rustup_status_2.success() {
             bail!("could not snap run rustup even after snap installing it");
           }
@@ -130,57 +133,70 @@ impl InstallWizard {
   ///
   /// If `dry_run` is set, print the command but don't actually do it.
   ///
-  /// This should be the only place in the entire program that calls `Command::new` (to make sure that we don't accidentally run things when dry-running)
+  /// This should be the only place in the entire program that calls `Command::new`
+  /// (to make sure that we don't accidentally run things when dry-running)
   fn maybe_dry_run_command(
-    &self,
+    &mut self,
     cmd: impl AsRef<OsStr>,
     args: &[impl AsRef<OsStr>],
     drop_to_user: bool,
   ) -> eyre::Result<ExitStatus> {
     use std::process::Command;
 
-    let (cmd, args) = if drop_to_user {
-      let mut sudo_args = vec![
-        OsString::from("--user"),
-        OsString::from(&self.real_user),
-        cmd.as_ref().to_os_string(),
-      ];
-      sudo_args.extend(
-        args
-          .into_iter()
-          .map(|s| s.as_ref().to_os_string())
-          .collect::<Vec<_>>(),
-      );
-      (OsString::from("sudo"), sudo_args)
-    } else {
-      (
-        cmd.as_ref().to_os_string(),
-        args
-          .into_iter()
-          .map(|s| s.as_ref().to_os_string())
-          .collect::<Vec<_>>(),
-      )
-    };
+    let cmd = cmd.as_ref().to_os_string();
+    let args = args
+      .into_iter()
+      .map(|s| s.as_ref().to_os_string())
+      .collect::<Vec<_>>();
 
-    let run_verb = if self.dry_run {
-      "dry-\"running\""
-    } else {
-      "running"
-    };
-    trace!("{} command: {} {:?}", run_verb, cmd.display(), &args);
+    trace!(
+      "{} command{}: {} {:?}",
+      if self.dry_run {
+        "dry-\"running\""
+      } else {
+        "running"
+      },
+      if drop_to_user {
+        " (dropping privileges)"
+      } else {
+        ""
+      },
+      &cmd.display(),
+      &args
+    );
 
     if self.dry_run {
-      // default impl is success
-      Ok(ExitStatus::default())
-    } else {
-      let mut command = Command::new(cmd);
-      command.args(args);
-      command.status().map_err(Into::into)
+      return Ok(ExitStatus::default());
     }
+
+    let mut process = Command::new(cmd);
+    process.args(args);
+    if drop_to_user {
+      let real_user_info = match self.cached_real_user {
+        Some(ref it) => {
+          trace!("above command run as uid {}", it.uid());
+          it
+        }
+        None => {
+          let real_user = users::get_user_by_name(&self.real_user).context(format!(
+            "no user with name '{}' could be found",
+            &self.real_user
+          ))?;
+          &*self.cached_real_user.insert(real_user)
+        }
+      };
+
+      process.uid(real_user_info.uid());
+      process.env("USER", real_user_info.name());
+      process.env("HOME", real_user_info.home_dir());
+    }
+
+    let status = process.status().context("while running command")?;
+    Ok(status)
   }
 
   /// Install a snap using `sudo snap install`
-  fn install_snap(&self, package_name: &str, classic_confinement: bool) -> eyre::Result<()> {
+  fn install_snap(&mut self, package_name: &str, classic_confinement: bool) -> eyre::Result<()> {
     info!(
       "using snap to install {:?}{} ...",
       package_name,
