@@ -23,8 +23,6 @@ mod wizard;
 /// The wizard presents a tree interface. Navigate it with HJKL
 /// or the arrow keys.
 /// Use space or enter to (un)pick an option.
-///
-///
 #[derive(Default, Parser)]
 #[command(version, about)]
 #[command(after_long_help = "\

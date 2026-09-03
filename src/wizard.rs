@@ -8,7 +8,7 @@ use std::{
 
 use eyre::{Context, ContextCompat, OptionExt, bail};
 use log::{info, trace};
-use users::os::unix::UserExt;
+use uzers::os::unix::UserExt;
 
 use crate::{Cli, recipe::InstallStep, shell_type::ShellType};
 
@@ -19,7 +19,7 @@ pub struct InstallWizard {
   pub real_user: String,
 
   config_file_handle: Option<File>,
-  cached_real_user: Option<users::User>,
+  cached_real_user: Option<uzers::User>,
 }
 
 impl InstallWizard {
@@ -184,7 +184,7 @@ impl InstallWizard {
           it
         }
         None => {
-          let real_user = users::get_user_by_name(&self.real_user).context(format!(
+          let real_user = uzers::get_user_by_name(&self.real_user).context(format!(
             "no user with name '{}' could be found",
             &self.real_user
           ))?;
