@@ -44,8 +44,14 @@ impl InstallWizard {
       }
       InstallStep::RustChannel(channel) => {
         info!("Using rustup to install rust channel {:?} ...", &channel);
-        let rustup_status_1 = self.maybe_dry_run_command("rustup", &["default", channel], true)?;
-        if rustup_status_1.code() == Some(1) {
+        let rustup_status_1 = self.maybe_dry_run_command("rustup", &["default", channel], true);
+        let rustup_status_1_ok = match rustup_status_1 {
+          // This probably means it could not execute the command
+          Err(_) => false,
+          Ok(code) if code.success() => true,
+          Ok(code) => bail!("bad status code {} when invoking rustup", code),
+        };
+        if !rustup_status_1_ok {
           // this is the code snap returns if it can't find rustup
           if self.dry_run {
             info!("did not find rustup, but we are dry-running, so it's okay");

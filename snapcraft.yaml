@@ -17,6 +17,10 @@ parts:
   devpack-for-rust:
     plugin: rust
     source: .
+    build-environment:
+      - RUSTFLAGS: >
+          -Clink-arg=-Wl,-rpath=\$ORIGIN/lib:/snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+          -Clink-arg=-Wl,-dynamic-linker=$(find /snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR -name 'ld*.so.*' -print | head -n1)
 
 apps:
   devpack-for-rust:

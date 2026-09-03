@@ -23,6 +23,20 @@ mod wizard;
 /// The wizard presents a tree interface. Navigate it with HJKL
 /// or the arrow keys.
 /// Use space or enter to (un)pick an option.
+///
+/// ## TROUBLESHOOTING
+///
+/// > The program bails because it is missing a linker!
+///
+/// Many Linux distributions do not come with a linker by default.
+/// On Ubuntu/Debian, you can get a linker with `sudo apt install build-essential`.
+/// There are too many Linux distributions to document how to get a linker on each of them
+/// in these docs; a web search is your friend.
+///
+/// > Some of the tools were installed, but I cannot find them from the command line!
+///
+/// You need to add `~/.cargo/bin` to your $PATH.
+///
 #[derive(Default, Parser)]
 #[command(version, about)]
 pub struct Cli {
