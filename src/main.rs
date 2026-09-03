@@ -24,21 +24,25 @@ mod wizard;
 /// or the arrow keys.
 /// Use space or enter to (un)pick an option.
 ///
-/// ## TROUBLESHOOTING
-///
-/// > The program bails because it is missing a linker!
-///
-/// Many Linux distributions do not come with a linker by default.
-/// On Ubuntu/Debian, you can get a linker with `sudo apt install build-essential`.
-/// There are too many Linux distributions to document how to get a linker on each of them
-/// in these docs; a web search is your friend.
-///
-/// > Some of the tools were installed, but I cannot find them from the command line!
-///
-/// You need to add `~/.cargo/bin` to your $PATH.
 ///
 #[derive(Default, Parser)]
 #[command(version, about)]
+#[command(after_long_help = "\
+Development happens at https://github.com/canonical/devpack-for-rust
+
+TROUBLESHOOTING
+
+> The program bails because it is missing a linker!
+
+Many Linux distributions do not come with a linker by default.
+On Ubuntu/Debian, you can get a linker with `sudo apt install build-essential`.
+There are too many Linux distributions to document how to get a linker on each of them
+in these docs; a web search is your friend.
+
+> Some of the tools were installed, but I cannot find them from the command line!
+
+You need to add `~/.cargo/bin` to your $PATH.
+")]
 pub struct Cli {
   #[arg(short = 'd', long)]
   /// Print what will be done, but don't actually execute any commands.
