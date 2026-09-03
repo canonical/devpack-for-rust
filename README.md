@@ -7,7 +7,7 @@ An easy installer for Rustup, IDEs, and Rusty accessories on Linux.
 
 devpack-for-rust is an opinionated tree-based install wizard for Rust development.
 You can quickly pick which Rust channel you want, an IDE, and some popular Rust-based CLI tools.
-Then it handles running `apt`, `snap`, and `rustup` for you.
+Then it handles running `snap`, `rustup`, and `cargo install` for you.
 
 Use the arrow-keys or HJKL to navigate the tree, and space/enter to make your choices.
 
