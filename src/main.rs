@@ -28,6 +28,13 @@ mod wizard;
 #[command(after_long_help = "\
 Development happens at https://github.com/canonical/devpack-for-rust
 
+SNAP CAVEATS
+
+The tools that devpack-for-rust installs are not integrated into the snap lifecycle.
+Specifically:
+- Uninstalling this snap does not uninstall the tools
+- Refreshing this snap does not update the tools
+
 TROUBLESHOOTING
 
 > The program bails because it is missing a linker!
