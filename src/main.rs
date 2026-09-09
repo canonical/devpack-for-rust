@@ -74,12 +74,13 @@ pub struct Cli {
   /// this includes anything you might write *and* the programs
   /// that devpack-for-rust uses `cargo install` to install.
   ///
+  /// By default rustc uses the system C linker, `cc`.
   /// devpack-for-rust does a simple check to see if `cc` is in
   /// the path and bails if it cannot find it.
   /// If your particular system provides a linker in some other way,
   /// you can override the check here.
   #[arg(long)]
-  pub skip_linker_check: bool,
+  pub skip_cc_check: bool,
 
   /// Usually, if one install step fails the whole program halts.
   /// Use this flag to override this behavior.
@@ -107,10 +108,12 @@ fn main() -> eyre::Result<()> {
     std::process::exit(1)
   }
 
-  if !settings.skip_linker_check && which::which("cc").is_err() {
-    eprintln!("You do not appear to have a linker installed!");
-    eprintln!("Please install a linker before continuing.");
-    eprintln!("(You can skip this check with `--skip-cc-check`)");
+  if !settings.skip_cc_check && which::which("cc").is_err() {
+    eprintln!("You do not appear to have a C linker installed! cc is not in the path.");
+    eprintln!("Please install a C compiler before continuing.");
+    eprintln!(
+      "(You can skip this check with `--skip-cc-check` if you have an alternate linker configured)"
+    );
     std::process::exit(1)
   }
 
