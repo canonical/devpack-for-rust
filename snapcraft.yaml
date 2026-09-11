@@ -17,6 +17,8 @@ parts:
   devpack-for-rust:
     plugin: rust
     source: .
+    build-attributes:
+      - enable-patchelf
     build-environment:
       - RUSTFLAGS: >
           -Clink-arg=-Wl,-rpath=\$ORIGIN/lib:/snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
