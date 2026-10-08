@@ -99,6 +99,8 @@ def main():
     if args.dry_run:
         command.extend(["--dry-run", "-vv"])
 
+    subprocess.run(["sudo", "loginctl", "enable-linger", "ubuntu"], check=True)
+
     process = subprocess.Popen(
         command,
         stdin=slave,
@@ -120,7 +122,7 @@ def main():
         keys = (
             b"l", b" ", b"h", b"j", b"j", b"l", b" ",
             b"h", b"j", b"l", b"j", b"j", b"l", b"h", b" ",
-            b"h", b"j", b" ",
+            b"h", b"j", b"\r",
         )
         for key in keys:
             os.write(master, key)

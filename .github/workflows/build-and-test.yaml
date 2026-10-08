@@ -30,7 +30,7 @@ jobs:
           sudo snap install snapcraft --classic
       - name: Build snap package
         run: |
-          snapcraft pack --use-lxd
+          snapcraft pack
       - name: Run spread tests
         run: |
           snapcraft test
