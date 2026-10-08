@@ -13,7 +13,6 @@ execute: |
   python3 "$PROJECT_PATH/spread/general/install-tools/test_selection.py" --dry-run
   python3 "$PROJECT_PATH/spread/general/install-tools/test_selection.py"
 
-  snap list rustup
   snap list just
 
   sudo -u ubuntu -- env \
