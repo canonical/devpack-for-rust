@@ -38,7 +38,7 @@ jobs:
             echo "::error::No devpack-for-rust snap package found to install"
             exit 1
           fi
-          sudo snap install --dangerous "$SNAP_FILE"
+          sudo snap install --dangerous --classic "$SNAP_FILE"
       - name: Run spread tests
         run: |
           snapcraft test
