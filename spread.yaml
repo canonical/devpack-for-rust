@@ -12,6 +12,7 @@ suites:
   spread/general/:
     summary: Snap tests
     prepare: |
+      sudo loginctl enable-linger "$USER"
       snap install "$CRAFT_ARTIFACT" --dangerous --classic
     restore: |
       snap remove devpack-for-rust --purge --terminate

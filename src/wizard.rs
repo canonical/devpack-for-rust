@@ -49,10 +49,11 @@ impl InstallWizard {
           // This probably means it could not execute the command
           Err(_) => false,
           Ok(code) if code.success() => true,
+          Ok(code) if code.code() == Some(127) => false,
           Ok(code) => bail!("bad status code {} when invoking rustup", code),
         };
         if !rustup_status_1_ok {
-          // this is the code snap returns if it can't find rustup
+          // `env` returns 127 when rustup is missing from the target user's PATH.
           if self.dry_run {
             info!("did not find rustup, but we are dry-running, so it's okay");
             return Ok(());
@@ -175,10 +176,8 @@ impl InstallWizard {
       return Ok(ExitStatus::default());
     }
 
-    let mut process = Command::new(cmd);
-    process.args(args);
-    if drop_to_user {
-      let real_user_info = match self.cached_real_user {
+    let real_user_info = if drop_to_user {
+      Some(match self.cached_real_user {
         Some(ref it) => {
           trace!("above command run as uid {}", it.uid());
           it
@@ -190,13 +189,59 @@ impl InstallWizard {
           ))?;
           &*self.cached_real_user.insert(real_user)
         }
-      };
+      })
+    } else {
+      None
+    };
 
+    if let Some(real_user_info) = real_user_info {
+      if which::which("sudo").is_ok() {
+        let home_dir = real_user_info.home_dir();
+        let cargo_bin = home_dir.join(".cargo/bin");
+        let path_value = format!(
+          "{}:/snap/bin:{}",
+          cargo_bin.display(),
+          std::env::var_os("PATH")
+            .unwrap_or_default()
+            .to_string_lossy()
+        );
+        let user_name = real_user_info.name().to_string_lossy();
+        let mut sudo_command = Command::new("sudo");
+        sudo_command.arg("-n");
+        sudo_command.arg("-u");
+        sudo_command.arg(user_name.as_ref());
+        sudo_command.arg("--");
+        sudo_command.arg("env");
+        sudo_command.arg(format!("USER={user_name}"));
+        sudo_command.arg(format!("HOME={}", home_dir.display()));
+        sudo_command.arg(format!("PATH={path_value}"));
+        sudo_command.arg(&cmd);
+        sudo_command.args(&args);
+        return sudo_command
+          .status()
+          .context("while running command as target user");
+      }
+
+      let mut process = Command::new(cmd);
+      process.args(args);
       process.uid(real_user_info.uid());
       process.env("USER", real_user_info.name());
       process.env("HOME", real_user_info.home_dir());
+      let cargo_bin = real_user_info.home_dir().join(".cargo/bin");
+      let path = format!(
+        "{}:/snap/bin:{}",
+        cargo_bin.display(),
+        std::env::var_os("PATH")
+          .unwrap_or_default()
+          .to_string_lossy()
+      );
+      process.env("PATH", path);
+      let status = process.status().context("while running command")?;
+      return Ok(status);
     }
 
+    let mut process = Command::new(cmd);
+    process.args(args);
     let status = process.status().context("while running command")?;
     Ok(status)
   }
