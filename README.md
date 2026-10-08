@@ -22,6 +22,22 @@ Use the arrow-keys or HJKL to navigate the tree, and space/enter to make your ch
 I'd love your feedback!
 I'm especially looking for Rust-based CLI tools for those who want to really oxidize their workflows.
 
+## Testing
+
+The Spread integration suite installs the built snap into LXD virtual machines.
+It checks the snap's command-line interface and drives the interactive wizard
+to select stable Rust, `just`, and `ripgrep`, then verifies all three tools,
+compiles and runs a Rust program, and runs a `just` recipe.
+
+Run it after setting up LXD and Snapcraft:
+
+```sh
+snapcraft pack --use-lxd
+snapcraft test
+```
+
+The suite runs on the Ubuntu systems listed in [spread.yaml](./spread.yaml).
+
 ## License
 
 Copyright (C) 2026 Canonical Ltd.
