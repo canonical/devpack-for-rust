@@ -1,20 +1,23 @@
 name: devpack-for-rust
-base: core26
-version: 0.2.1
-license: GPL-3.0
-summary: Development tools for Rust
 title: Devpack for Rust
-issues:
-  - https://github.com/canonical/devpack-for-rust/issues
-contact:
-  - https://github.com/canonical/devpack-for-rust/issues
+license: GPL-3.0
+version: "0.2.1"
+summary: Development tools for Rust
+description: |
+  An install wizard for batteries-included Rust development. Pick your version of rustc,
+  your IDE, and your favorite oxidized tools, and let the tool do the rest.
+base: core26
+confinement: classic
+grade: stable
 source-code:
   - https://github.com/canonical/devpack-for-rust
 website:
   - https://github.com/canonical/devpack-for-rust
-description: 'An install wizard for batteries-included Rust development. Pick your   version of rustc, your IDE, and your favorite oxidized tools, and let the tool do the rest. '
-grade: stable
-confinement: classic
+issues:
+  - https://github.com/canonical/devpack-for-rust/issues
+contact:
+  - https://github.com/canonical/devpack-for-rust/issues
+
 parts:
   devpack-for-rust:
     plugin: rust
@@ -22,7 +25,10 @@ parts:
     build-attributes:
       - enable-patchelf
     build-environment:
-      - RUSTFLAGS: '-Clink-arg=-Wl,-rpath=\$ORIGIN/lib:/snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR -Clink-arg=-Wl,-dynamic-linker=$(find /snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR -name ''ld*.so.*'' -print | head -n1) '
+      - RUSTFLAGS: >
+          -Clink-arg=-Wl,-rpath=\$ORIGIN/lib:/snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+          -Clink-arg=-Wl,-dynamic-linker=$(find /snap/core26/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR -name 'ld*.so.*' -print | head -n1)
+
 apps:
   devpack-for-rust:
     command: bin/devpack-for-rust
