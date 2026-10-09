@@ -8,10 +8,15 @@ description: |
   your IDE, and your favorite oxidized tools, and let the tool do the rest.
 base: core26
 confinement: classic
-source-code: https://github.com/canonical/devpack-for-rust
-website: https://github.com/canonical/devpack-for-rust
-contact: petrichor.park@canonical.com
-issues: https://github.com/canonical/devpack-for-rust/issues
+grade: stable
+source-code:
+  - https://github.com/canonical/devpack-for-rust
+website:
+  - https://github.com/canonical/devpack-for-rust
+issues:
+  - https://github.com/canonical/devpack-for-rust/issues
+contact:
+  - https://github.com/canonical/devpack-for-rust/issues
 
 parts:
   devpack-for-rust:

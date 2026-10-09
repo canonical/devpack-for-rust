@@ -1,0 +1,89 @@
+summary: Install and run selected Rust tools
+
+execute: |
+  set -eux
+
+  cd "$PROJECT_PATH"
+  if ! getent passwd ubuntu >/dev/null; then
+    useradd --create-home --shell /bin/bash ubuntu
+  fi
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y build-essential
+
+  python3 "$PROJECT_PATH/spread/general/install-tools/test_selection.py" --dry-run
+  python3 "$PROJECT_PATH/spread/general/install-tools/test_selection.py"
+
+  snap list just
+
+  sudo -u ubuntu -- env \
+    HOME=/home/ubuntu \
+    PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    rustc --version
+  sudo -u ubuntu -- env \
+    HOME=/home/ubuntu \
+    PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    rustup show active-toolchain | grep -E '^stable-'
+  sudo -u ubuntu -- env \
+    HOME=/home/ubuntu \
+    PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    rg --version | grep -E '^ripgrep [0-9]+\.'
+  sudo -u ubuntu -- env \
+    HOME=/home/ubuntu \
+    PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    cargo --version
+
+  printf 'Rust compiler works\n' | sudo -u ubuntu -- env \
+    HOME=/home/ubuntu \
+    PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    rg -F 'Rust compiler works'
+
+  snap run just --version
+  just_file=$(mktemp)
+  trap 'rm -f "$just_file"' EXIT
+  printf 'hello:\n    @echo just works\n' > "$just_file"
+  snap run just --justfile "$just_file" hello | grep -Fx 'just works'
+
+  python3 - <<'PY'
+  import os
+  import pwd
+  import shutil
+  import subprocess
+  import tempfile
+  from pathlib import Path
+
+  user = pwd.getpwnam("ubuntu")
+  workdir = Path(tempfile.mkdtemp(prefix="devpack-for-rust-spread-"))
+  os.chown(workdir, user.pw_uid, user.pw_gid)
+  workdir.chmod(0o755)
+
+  try:
+      source_dir = workdir / "src"
+      source_dir.mkdir()
+      (workdir / "Cargo.toml").write_text(
+          '[package]\nname = "spread-smoke"\nversion = "0.1.0"\nedition = "2024"\n'
+      )
+      (source_dir / "main.rs").write_text(
+          'fn main() { println!("Rust compiler works"); }\n'
+      )
+
+      subprocess.run(
+          [
+              "sudo", "-u", "ubuntu", "--", "env",
+              "HOME=/home/ubuntu",
+              "PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/bin:/bin",
+              "cargo", "build", "--offline",
+          ],
+          cwd=workdir,
+          check=True,
+      )
+      result = subprocess.run(
+          [str(workdir / "target/debug/spread-smoke")],
+          check=True,
+          capture_output=True,
+          text=True,
+      )
+      if result.stdout.strip() != "Rust compiler works":
+          raise SystemExit(f"unexpected Rust program output: {result.stdout!r}")
+  finally:
+      shutil.rmtree(workdir)
+  PY

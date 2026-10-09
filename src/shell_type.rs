@@ -46,7 +46,7 @@ impl ShellType {
     let proc_cli = process.cmdline()?;
     trace!("guessing if this is a shell? {:?}", &proc_cli);
     let proc_cmd = proc_cli
-      .get(0)
+      .first()
       .ok_or(eyre!("process somehow did not have a 0th argument"))?;
 
     // > ... if the pathname has been unlinked,
@@ -67,9 +67,9 @@ impl ShellType {
     // > or one started with the --login option.
     // in other words, `-coolshellname` == `coolshellname`
     let filename_bytes = filename.as_bytes();
-    let filename_trimmed = match filename_bytes.strip_prefix(&[b'-']) {
+    let filename_trimmed = match filename_bytes.strip_prefix(b"-") {
       Some(it) => it,
-      None => &filename_bytes,
+      None => filename_bytes,
     };
 
     let ty = match filename_trimmed {

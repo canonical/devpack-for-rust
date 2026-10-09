@@ -1,0 +1,10 @@
+summary: Check the installed snap command-line interface
+
+execute: |
+  set -eux
+
+  cd "$PROJECT_PATH"
+  snap list devpack-for-rust
+  snap run devpack-for-rust --version | grep -E '^devpack-for-rust [0-9]+\.[0-9]+\.[0-9]+$'
+  snap run devpack-for-rust --help | grep -F -- '--dry-run'
+  snap run devpack-for-rust --help | grep -F -- '--override-user'
