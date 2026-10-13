@@ -1,16 +1,15 @@
 #![cfg(target_os = "linux")]
 
 use clap::Parser;
-use console::Key;
 use eyre::{ContextCompat, eyre};
 use log::warn;
-use treeversal::console_driver::{ConsoleDriver, Palette, TakeInput};
 
 use crate::{shell_type::ShellType, wizard::InstallWizard};
 
 mod recipe;
 mod selection_tree;
 mod shell_type;
+mod tree_picker;
 mod wizard;
 
 /// an easy installer for rustup, IDEs, and rusty accessories
@@ -23,6 +22,7 @@ mod wizard;
 /// The wizard presents a tree interface. Navigate it with HJKL
 /// or the arrow keys.
 /// Use space or enter to (un)pick an option.
+/// Page Up/Down scrolls the tree. Escape or Ctrl+C cancels.
 #[derive(Default, Parser)]
 #[command(version, about)]
 #[command(after_long_help = "\
@@ -143,22 +143,10 @@ fn main() -> eyre::Result<()> {
     println!("Your shell could not be autodetected.")
   }
 
-  let tree = selection_tree::make_tree();
-  let mut console_driver = ConsoleDriver::new_stdout(Palette::fancy(), tree);
-  console_driver.print_tree();
-
-  while let Ok(key) = console_driver.term.read_key() {
-    if key == Key::CtrlC {
-      break;
-    }
-    let res = console_driver.take_input(key);
-    if let Ok(TakeInput::Quit) = res {
-      break;
-    }
-    console_driver.print_tree();
-  }
-
-  let selected = console_driver.interactor.get_all_selected_data();
+  let Some(interactor) = tree_picker::pick(selection_tree::make_tree())? else {
+    return Ok(());
+  };
+  let selected = interactor.get_all_selected_data();
   let selected_recipes = selected.iter().map(|smad| &smad.data).collect::<Vec<_>>();
 
   let mut install_wizard = InstallWizard::new(settings, shell_type, real_user);
