@@ -16,6 +16,13 @@ You can quickly pick which Rust channel you want, an IDE, and some popular Rust-
 Then it handles running `snap`, `rustup`, and `cargo install` for you.
 
 Use the arrow-keys or HJKL to navigate the tree, and space/enter to make your choices.
+Left/H goes to the parent; right/L enters a group's children; up/K and down/J move between siblings.
+The picker uses the full available terminal height, with the tree width limited to 100 columns.
+It adapts to terminal resizing, wraps long descriptions, and displays URLs on separate lines.
+It scrolls automatically to keep the focused choice visible.
+Use Page Up/Page Down to scroll the viewport, or End to view its end.
+Escape or Home (Pos1) returns the view and focus to the top without changing selections.
+Choose "All done?" to install; Q or Ctrl+C cancels without installing anything.
 
 ## Contributing
 
