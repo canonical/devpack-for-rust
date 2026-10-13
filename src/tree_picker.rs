@@ -5,7 +5,7 @@ use crossterm::{
   terminal::{disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
-  Frame, Terminal, TerminalOptions, Viewport,
+  Frame, Terminal,
   backend::CrosstermBackend,
   layout::Rect,
   style::{Modifier, Style},
@@ -21,7 +21,6 @@ use treeversal::{
 use crate::recipe::InstallRecipe;
 
 const MAX_WIDTH: u16 = 100;
-const MAX_HEIGHT: u16 = 24;
 type Picker = TreeInteractor<StyledMsgAndData<InstallRecipe>>;
 
 struct RawMode;
@@ -35,12 +34,8 @@ impl Drop for RawMode {
 pub fn pick(tree: TreeDefinition<StyledMsgAndData<InstallRecipe>>) -> io::Result<Option<Picker>> {
   enable_raw_mode()?;
   let _raw_mode = RawMode;
-  let mut terminal = Terminal::with_options(
-    CrosstermBackend::new(io::stdout()),
-    TerminalOptions {
-      viewport: Viewport::Inline(MAX_HEIGHT),
-    },
-  )?;
+  let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+  terminal.clear()?;
   let mut picker = Picker::new(tree);
   let mut viewport = TreeViewport::default();
   let result = (|| {
@@ -52,7 +47,7 @@ pub fn pick(tree: TreeDefinition<StyledMsgAndData<InstallRecipe>>) -> io::Result
       if key.kind == KeyEventKind::Release {
         continue;
       }
-      if key.code == KeyCode::Esc
+      if matches!(key.code, KeyCode::Char('q' | 'Q'))
         || (key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL))
       {
         return Ok(None);
@@ -60,10 +55,7 @@ pub fn pick(tree: TreeDefinition<StyledMsgAndData<InstallRecipe>>) -> io::Result
       match key.code {
         KeyCode::PageDown => viewport.scroll(true),
         KeyCode::PageUp => viewport.scroll(false),
-        KeyCode::Home => {
-          viewport.offset = 0;
-          viewport.follow_cursor = false;
-        }
+        KeyCode::Esc | KeyCode::Home => viewport.go_to_top(&mut picker),
         KeyCode::End => {
           viewport.offset = usize::MAX;
           viewport.follow_cursor = false;
@@ -111,6 +103,21 @@ impl Default for TreeViewport {
 }
 
 impl TreeViewport {
+  fn go_to_top(&mut self, picker: &mut Picker) {
+    while picker.cursor_path().len() > 1 {
+      picker
+        .interact(TreeInteraction::ExitNode)
+        .expect("nested cursor has a parent");
+    }
+    while picker.cursor_path()[0] != 0 {
+      picker
+        .interact(TreeInteraction::SeekSibling { next: false })
+        .expect("top-level cursor has siblings");
+    }
+    self.offset = 0;
+    self.follow_cursor = true;
+  }
+
   fn scroll(&mut self, down: bool) {
     self.offset = if down {
       self.offset.saturating_add(self.page_size)
@@ -123,7 +130,6 @@ impl TreeViewport {
   fn draw(&mut self, frame: &mut Frame, picker: &Picker) {
     let area = Rect {
       width: frame.area().width.min(MAX_WIDTH),
-      height: frame.area().height.min(MAX_HEIGHT),
       ..frame.area()
     };
     if area.is_empty() {
@@ -339,6 +345,33 @@ mod tests {
   use ratatui::backend::TestBackend;
 
   #[test]
+  fn returning_to_top_resets_focus_and_scroll_without_changing_selections() {
+    let mut picker = Picker::new(crate::selection_tree::make_tree());
+    picker
+      .interact(TreeInteraction::SeekSibling { next: false })
+      .unwrap();
+    picker
+      .interact(TreeInteraction::SeekSibling { next: false })
+      .unwrap();
+    picker.interact(TreeInteraction::EnterNode).unwrap();
+    picker.interact(TreeInteraction::EnterNode).unwrap();
+    picker
+      .interact(TreeInteraction::EditPicked(EditPickedType::Select))
+      .unwrap();
+    let selections = picker.get_all_selected_paths();
+    let mut viewport = TreeViewport {
+      offset: 20,
+      follow_cursor: false,
+      ..TreeViewport::default()
+    };
+    viewport.go_to_top(&mut picker);
+    assert_eq!(picker.cursor_path(), &[0]);
+    assert_eq!(viewport.offset, 0);
+    assert!(viewport.follow_cursor);
+    assert_eq!(picker.get_all_selected_paths(), selections);
+  }
+
+  #[test]
   fn layout_separates_urls_and_preserves_tree_markers() {
     let picker = Picker::new(crate::selection_tree::make_tree());
     let (lines, _) = tree_lines(&picker, 100);
@@ -401,23 +434,30 @@ mod tests {
   }
 
   #[test]
-  fn resize_keeps_focus_visible_and_large_screens_remain_bounded() {
+  fn resize_keeps_focus_visible_and_uses_available_height() {
     let mut picker = Picker::new(crate::selection_tree::make_tree());
     picker
       .interact(TreeInteraction::SeekSibling { next: false })
       .unwrap();
     let mut viewport = TreeViewport::default();
-    for (width, height) in [(160, 60), (40, 8), (20, 4), (1, 1), (80, 24)] {
-      let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+    let mut terminal = Terminal::new(TestBackend::new(160, 60)).unwrap();
+    for (width, height) in [(160, 60), (80, 30), (40, 8), (20, 4), (1, 1), (80, 24)] {
+      terminal.backend_mut().resize(width, height);
       terminal
         .draw(|frame| viewport.draw(frame, &picker))
         .unwrap();
-      let (_, focused) = tree_lines(&picker, width.min(MAX_WIDTH) as usize);
+      let (lines, focused) = tree_lines(&picker, width.min(MAX_WIDTH) as usize);
+      let expected_capacity = if lines.len() > height as usize {
+        (height as usize).saturating_sub(1).max(1)
+      } else {
+        height as usize
+      };
+      assert_eq!(viewport.page_size, expected_capacity);
       assert!(focused.start >= viewport.offset);
       assert!(focused.start < viewport.offset + viewport.page_size);
       for row in 0..height {
         for column in 0..width {
-          if row >= MAX_HEIGHT || column >= MAX_WIDTH {
+          if column >= MAX_WIDTH {
             assert_eq!(terminal.backend().buffer()[(column, row)].symbol(), " ");
           }
         }

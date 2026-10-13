@@ -22,7 +22,8 @@ mod wizard;
 /// The wizard presents a tree interface. Navigate it with HJKL
 /// or the arrow keys.
 /// Use space or enter to (un)pick an option.
-/// Page Up/Down scrolls the tree. Escape or Ctrl+C cancels.
+/// Page Up/Down scrolls the tree. Escape or Home (Pos1) returns to the top.
+/// Q or Ctrl+C cancels.
 #[derive(Default, Parser)]
 #[command(version, about)]
 #[command(after_long_help = "\
