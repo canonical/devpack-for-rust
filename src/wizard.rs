@@ -151,7 +151,7 @@ impl InstallWizard {
 
     let cmd = cmd.as_ref().to_os_string();
     let args = args
-      .into_iter()
+      .iter()
       .map(|s| s.as_ref().to_os_string())
       .collect::<Vec<_>>();
 
