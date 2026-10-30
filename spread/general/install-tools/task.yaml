@@ -18,6 +18,10 @@ execute: |
   sudo -u ubuntu -- env \
     HOME=/home/ubuntu \
     PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    rustup default stable
+  sudo -u ubuntu -- env \
+    HOME=/home/ubuntu \
+    PATH=/home/ubuntu/.cargo/bin:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     rustc --version
   sudo -u ubuntu -- env \
     HOME=/home/ubuntu \
