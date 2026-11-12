@@ -136,7 +136,7 @@ fn main() -> eyre::Result<()> {
     }
   };
 
-  println!("You appear to be the user {}", &real_user);
+  println!("You appear to be the user {}", real_user);
   if let Ok(shell_type) = shell_type {
     println!("Your shell has been autodetected as: {:?}", shell_type);
   } else {
