@@ -43,7 +43,7 @@ impl InstallWizard {
         Ok(())
       }
       InstallStep::RustChannel(channel) => {
-        info!("Using rustup to install rust channel {:?} ...", &channel);
+        info!("Using rustup to install rust channel {:?} ...", channel);
         let rustup_status_1 = self.maybe_dry_run_command("rustup", &["default", channel], true);
         let rustup_status_1_ok = match rustup_status_1 {
           // This probably means it could not execute the command
@@ -101,8 +101,8 @@ impl InstallWizard {
         let cfg_file_loc = home_dir.join(shell.config_file_location());
         info!(
           "writing following alias in file {}:\n{}",
-          &cfg_file_loc.display(),
-          &alias,
+          cfg_file_loc.display(),
+          alias,
         );
 
         if self.dry_run {
@@ -167,8 +167,8 @@ impl InstallWizard {
       } else {
         ""
       },
-      &cmd.display(),
-      &args
+      cmd.display(),
+      args
     );
 
     if self.dry_run {
@@ -186,7 +186,7 @@ impl InstallWizard {
         None => {
           let real_user = uzers::get_user_by_name(&self.real_user).context(format!(
             "no user with name '{}' could be found",
-            &self.real_user
+            self.real_user
           ))?;
           &*self.cached_real_user.insert(real_user)
         }

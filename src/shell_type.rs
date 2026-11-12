@@ -44,7 +44,7 @@ impl ShellType {
     // use `cmdline` instead of `exe` because some shells
     // are polyglots; we care mostly how the USER invoked this.
     let proc_cli = process.cmdline()?;
-    trace!("guessing if this is a shell? {:?}", &proc_cli);
+    trace!("guessing if this is a shell? {:?}", proc_cli);
     let proc_cmd = proc_cli
       .first()
       .ok_or(eyre!("process somehow did not have a 0th argument"))?;
